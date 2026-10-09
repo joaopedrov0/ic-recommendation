@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Técnicas de Sistemas de Recomendação</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+<style>
+  :root{
+    --bg:#fdfdfc; --fg:#1f2328; --muted:#6b7280; --accent:#1d4ed8; --line:#e5e7eb;
+    --card:#f6f7f9; --note:#eef4ff; --board:#0b3d1c; --boardfg:#f4f4ee;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#14161a; --fg:#e6e8eb; --muted:#9aa3af; --accent:#7aa2ff; --line:#2b3038;
+           --card:#1b1e24; --note:#1a2233; --board:#0b3d1c; --boardfg:#f4f4ee; }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth; scroll-padding-top:1rem}
+  body{margin:0; background:var(--bg); color:var(--fg);
+       font:17px/1.7 Georgia,"Source Serif Pro","Times New Roman",serif}
+  .layout{display:grid; grid-template-columns:260px minmax(0,1fr); gap:3rem;
+          max-width:1100px; margin:0 auto; padding:0 16px}
+  nav{position:sticky; top:0; align-self:start; max-height:100vh; overflow:auto; padding:2rem 0;
+      font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  nav h2{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 .75rem}
+  nav ol{list-style:none; margin:0; padding:0}
+  nav ol ol{padding-left:1rem; margin:.15rem 0 .35rem; border-left:1px solid var(--line)}
+  nav li{margin:.1rem 0}
+  nav a{color:var(--fg); text-decoration:none; display:block; padding:.15rem .5rem; border-radius:4px}
+  nav a:hover{background:var(--card)}
+  nav a.active{color:var(--accent); font-weight:600}
+  main{padding:2.5rem 0 5rem; max-width:720px}
+  header{text-align:center; margin-bottom:2.5rem}
+  h1{font-size:2.3rem; line-height:1.2; margin:0 0 .4rem}
+  .subtitle{color:var(--muted); font-size:1.15rem; margin:0 0 1.5rem}
+  .intro{text-align:justify; color:var(--fg)}
+  h2{font-size:1.7rem; margin:3rem 0 .3rem; line-height:1.25}
+  h3{font-size:1.3rem; margin:2.2rem 0 .5rem}
+  h4{font-size:1.1rem; margin:1.6rem 0 .3rem; color:var(--muted)}
+  .lead{color:var(--muted); font-style:italic; margin:0 0 1rem}
+  p{margin:.8rem 0; text-align:justify; hyphens:auto}
+  .formula{background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:.6rem 1rem; margin:1.2rem 0; overflow-x:auto}
+  .formula figcaption{text-align:center; font-size:.9rem; color:var(--muted); margin-top:.2rem}
+  .katex-display{margin:.6em 0}
+  .board{background:var(--board); color:var(--boardfg); border-radius:8px; padding:.6rem 1rem;
+         margin:1.2rem 0; overflow-x:auto}
+  .board .katex{color:var(--boardfg)}
+  table.ratings{border-collapse:collapse; margin:1.2rem auto; font:1rem system-ui,sans-serif;
+                background:var(--board); color:var(--boardfg); border-radius:8px; overflow:hidden}
+  table.ratings th,table.ratings td{padding:.55rem 1.1rem; text-align:center;
+                border:1px solid rgba(255,255,255,.35)}
+  table.ratings th{font-weight:600}
+  table.ratings td.empty{color:rgba(255,255,255,.35)}
+  .table-wrap{overflow-x:auto}
+  .note{background:var(--note); border-left:4px solid var(--accent); padding:.6rem 1rem;
+        border-radius:0 6px 6px 0; margin:1rem 0; font-size:.95rem;
+        font-family:system-ui,sans-serif; line-height:1.55}
+  .pending{color:var(--muted); font-style:italic}
+
+  sup.ref{font-size:.7em; line-height:0} sup.ref a{color:var(--accent); text-decoration:none}
+  figure.video{margin:1.4rem 0}
+  figure.video video{width:100%; aspect-ratio:16/9; border-radius:8px; border:1px solid var(--line); background:#000; display:block}
+  figure.video figcaption{font-size:.9rem; color:var(--muted); margin-top:.4rem; text-align:center}
+  table.ratings td.imp{background:rgba(250,204,21,.28); color:#fde68a}
+  table.ratings td.pred{background:rgba(45,212,191,.28); color:#99f6e4; font-weight:600}
+  table.cmp{border-collapse:collapse; margin:1.2rem auto; font:.95rem system-ui,sans-serif; width:100%}
+  table.cmp th,table.cmp td{padding:.5rem .8rem; border-bottom:1px solid var(--line); text-align:left}
+  table.cmp th{color:var(--muted); font-weight:600}
+  table.cmp td+td,table.cmp th+th{text-align:center}
+  details{margin:1rem 0; font:.95rem system-ui,sans-serif}
+  details summary{cursor:pointer; color:var(--accent)}
+  details pre{background:var(--card); border:1px solid var(--line); border-radius:8px; padding:1rem; overflow-x:auto; font-size:.82rem; line-height:1.5}
+  aside.sources{margin-top:2.5rem; padding-top:1rem; border-top:1px solid var(--line); font:.9rem/1.6 system-ui,sans-serif}
+  aside.sources h4{margin:0 0 .5rem; text-transform:uppercase; letter-spacing:.08em; font-size:.8rem}
+  aside.sources ol{padding-left:1.3rem; margin:0} aside.sources li{margin:.35rem 0; word-break:break-word}
+
+  .mat-eq{display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.9rem; margin:1.4rem 0; font-family:system-ui,sans-serif}
+  .mat-op{font-size:1.6rem; color:var(--muted)}
+  .mat{text-align:center}
+  .mat-title{font-size:.85rem; color:var(--muted); margin-bottom:.3rem}
+  table.mat-t{border-collapse:collapse; margin:0 auto; border-left:2px solid var(--fg); border-right:2px solid var(--fg); border-radius:4px}
+  table.mat-t td{padding:.3rem .6rem; text-align:center; font-size:.95rem; font-variant-numeric:tabular-nums}
+  table.mat-t td.q{color:var(--muted)}
+  table.mat-t.p td{color:#f97316} table.mat-t.q2 td{color:#16a34a}
+  @media (max-width:860px){
+    .layout{grid-template-columns:1fr; gap:0}
+    nav{position:static; max-height:none; padding:1.5rem 0 0; border-bottom:1px solid var(--line)}
+    main{padding-top:1.5rem}
+    h1{font-size:1.8rem}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav aria-label="Sumário">
+  <h2>Sumário</h2>
+  <ol>
+    <li><a href="#popularidade">Algoritmos Baseados em Popularidade</a></li>
+    <li><a href="#colaborativa">Filtragem Colaborativa</a>
+      <ol>
+        <li><a href="#ubcf">Baseada em Usuário (UBCF)</a>
+          <ol>
+            <li><a href="#complexidade">Complexidade O(N²)</a></li>
+            <li><a href="#tempo">Não sensível ao tempo</a></li>
+            <li><a href="#sparsity">Matrix Sparsity Problem</a></li>
+          </ol>
+        </li>
+        <li><a href="#ibcf">Baseada em Item (IBCF)</a></li>
+      </ol>
+    </li>
+    <li><a href="#svd">Modelos Fatoriais e SVD</a>
+      <ol>
+        <li><a href="#svd-latentes">Fatores latentes</a></li>
+        <li><a href="#svd-classico">O SVD clássico</a></li>
+        <li><a href="#svd-sgd">Treinando só o observado</a></li>
+        <li><a href="#svd-vieses">Vieses</a></li>
+        <li><a href="#svd-als">ALS</a></li>
+        <li><a href="#svd-exemplo">Aplicando ao exemplo</a></li>
+        <li><a href="#svd-extensoes">Extensões</a></li>
+        <li><a href="#svd-limitacoes">Limitações</a></li>
+        <li><a href="#fontes-svd">Fontes</a></li>
+      </ol>
+    </li>
+    <li><a href="#tfidf">Modelagem Linguística (TF-IDF)</a></li>
+    <li><a href="#cbr">Raciocínio Baseado em Conhecimento (CBR)</a></li>
+    <li><a href="#rnn">Redes Neurais Recorrentes (RNN e RvNN)</a></li>
+    <li><a href="#transe">Translating Embeddings (TransE)</a></li>
+  </ol>
+</nav>
+
+<main>
+<header>
+  <h1>Técnicas de Sistemas de Recomendação</h1>
+  <p class="subtitle">Base bruta de dados</p>
+  <p class="intro">O objetivo deste documento é organizar todas as descobertas feitas durante o estudo de diferentes técnicas utilizadas em sistemas de recomendação, a fim de compreender seu funcionamento matemático, suas prioridades e seus dados de entradas.</p>
+</header>
+
+<!-- ============ POPULARIDADE ============ -->
+<section id="popularidade">
+  <h2>Algoritmos Baseados em Popularidade</h2>
+  <p class="lead">Probabilidade empírica univariada e aplicação de funções de decaimento exponencial temporal (Time Decay).</p>
+
+  <p>A primeira e mais simples abordagem para sistemas de recomendação analisada foram os algoritmos baseados em popularidade. Esses algoritmos partem da premissa que se a maioria gosta de um certo material, se trata de um conteúdo de qualidade e que se encaixa como recomendação ideal para qualquer usuário. Em outras palavras, a aceitação de um item recomendado é mais provável se sua adoção global prévia for alta.</p>
+
+  <div class="formula">$$S(i) = \frac{N_i}{\sum_{j \in I} N_j}$$</div>
+
+  <p>\(S(i)\) é o grau de recomendação de um item. \(N_i\) é a frequência absoluta de interações que um item recebeu. \(I\) é o universo de itens. Ou seja, o grau de “relevância” para recomendação de um dado item é determinado pela razão de interações desse item e o total de interações em todos os itens restantes no sistema.</p>
+
+  <p>Entretanto, esse modelo tem um problema já conhecido. Conforme o sistema é utilizado, itens mais antigos acumulam interações de modo que se tornam praticamente imbatíveis em relação a itens novos. Um excelente material sequer tem chance de ser recomendado se tiver sido lançado recentemente, afinal os materiais que estão acumulando interações a dias, naturalmente, terão mais interações do que materiais mais recentes, independente da sua relevância.</p>
+
+  <p>Uma abordagem para resolver esse problema é o Decaimento Exponencial (<em>Time Decay</em>), que introduz uma decrescente relevância a interações antigas, de modo a valorizar mais as interações recentes. Agora, um material antigo será colocado acima de um material mais recente não se tiver um total de interações superior, mas sim se <strong>manteve sua relevância</strong> ao longo do tempo, e ainda é consistentemente acessado pelos usuários.</p>
+
+  <div class="formula">$$S_t(i) = \sum_{k=1}^{N_i} e^{-\lambda (t - t_k)}$$</div>
+
+  <p>Como você pode ver, agora o somatório não soma a quantidade bruta de interações, mas sim a relevância das interações em relação ao tempo. Interações mais recentes somam um valor maior, interações históricas perdem relevância ao longo do tempo.</p>
+
+  <p>É uma abordagem barata, escalável, e um bom <em>fallback</em> resistente ao <em>cold-start</em>. Suas desvantagens, porém, são notáveis já nas suas premissas iniciais. Ao assumir que a probabilidade de aceitação de um item depende apenas da adoção global, o sistema descarta personalização e trata todos os usuários da mesma forma, sem levar em consideração suas preferências.</p>
+</section>
+
+<!-- ============ FILTRAGEM COLABORATIVA ============ -->
+<section id="colaborativa">
+  <h2>Filtragem Colaborativa</h2>
+  <p class="lead">Modelagem com Coeficiente de Correlação de Pearson para isolamento de viés atitudinal e Similaridade de Cosseno</p>
+
+  <p>Os algoritmos baseados em popularidade são bons no que se propõem a fazer: recomendar itens mais globalmente relevantes naquele momento (caso esteja usando <em>time decay</em>), entretanto algumas aplicações exigem levar em consideração quem é o usuário que está acessando, para que seja possível fornecer uma recomendação mais customizada para aquele em específico.</p>
+
+  <p>Uma das abordagens mais simples para resolver esse problema é a <strong>filtragem colaborativa</strong>, uma técnica de sistemas de recomendação que assume que usuários com comportamento similar no passado terão comportamento similar no futuro. Isso é aproveitado por duas abordagens de filtragem colaborativa:</p>
+  <ul>
+    <li><em>User-Based Collaborative Filtering</em></li>
+    <li><em>Item-Based Collaborative Filtering</em></li>
+  </ul>
+  <p>Ambas as abordagens vão utilizar o conceito de uma matriz de avaliações usuário-item.</p>
+  <p>Vamos entender como funciona cada uma delas.</p>
+
+  <!-- ---- UBCF ---- -->
+  <h3 id="ubcf">Filtragem Colaborativa Baseada em Usuário (UBCF)</h3>
+  <p>A abordagem baseada em usuário faz recomendações preenchendo espaços vazios em tabelas usuário-item. Observe a tabela abaixo.</p>
+
+  <div class="table-wrap">
+  <table class="ratings">
+    <thead><tr><th></th><th>Filme A</th><th>Filme B</th><th>Filme C</th><th>Filme D</th></tr></thead>
+    <tbody>
+      <tr><th>Alice</th><td>5</td><td class="empty">—</td><td class="empty">—</td><td>4</td></tr>
+      <tr><th>Fábio</th><td>4</td><td>5</td><td class="empty">—</td><td>4</td></tr>
+      <tr><th>Nathan</th><td>1</td><td>3</td><td>5</td><td>2</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Na tabela, temos os usuários sendo representados pelas linhas, e os itens passíveis de recomendação nas colunas. A intersecção dos usuários com os itens são as avaliações que o usuário fez no respectivo item.</p>
+
+  <p>Vamos supor que queremos, com a filtragem colaborativa, descobrir qual filme tem a maior chance de ser do interesse da Alice, o filme B ou C?</p>
+
+  <p>Para descobrir isso, vamos primeiro descobrir qual usuário é mais parecido com Alice. Duas das métricas de similaridade que podemos utilizar são a <strong>Similaridade de Cosseno</strong> e o <strong>Coeficiente de Correlação de Pearson</strong> (PCC).</p>
+
+  <figure class="formula">
+    $$\mathrm{Cosine}(x,y) = \frac{\sum_{i=1}^{n} x_i\, y_i}{\sqrt{\sum_{i=1}^{n} x_i^2}\;\sqrt{\sum_{i=1}^{n} y_i^2}}$$
+    <figcaption>Similaridade de Cosseno</figcaption>
+  </figure>
+
+  <figure class="formula">
+    $$\mathrm{PCC} = \frac{\sum \left(r_{ai}-\overline{r}_a\right)\left(r_{bi}-\overline{r}_b\right)}{\sqrt{\sum \left(r_{ai}-\overline{r}_a\right)^2}\;\sqrt{\sum \left(r_{bi}-\overline{r}_b\right)^2}}$$
+    <figcaption>Coeficiente de Correlação de Pearson (PCC)</figcaption>
+  </figure>
+
+  <p>A diferença entre as duas abordagens é que a correlação de Pearson leva em consideração o quão difícil é um usuário dar uma nota alta. Por exemplo, se um usuário sempre dá nota acima de 4 para tudo que consome, é difícil dizer o quão fora da curva foi para ele a experiência de um item avaliado com um 5. Por outro lado, para um usuário que dificilmente avalia algo com nota superior a 3, uma nota 5 é uma grande preferência. Analisando a fórmula da correlação de Pearson, podemos observar que ele subtrai a média das notas daquele usuário da nota em si, fazendo com que o valor da nota seja o “quanto ela está distante da média”, seja positivamente ou negativamente.</p>
+
+  <p>Vamos calcular a similaridade entre Alice e Fábio.</p>
+
+  <div class="board">
+    $$\mathrm{sim}(\text{Alice},\text{Fábio}) = \frac{\overbrace{(5-4{,}5)(4-4{,}3)}^{\text{Filme A}} + \overbrace{(4-4{,}5)(4-4{,}3)}^{\text{Filme D}}}{\sqrt{\sum_{i\in I_{uv}} (r_{u,i}-\overline{r}_u)^2}\;\sqrt{\sum_{i\in I_{uv}} (r_{v,i}-\overline{r}_v)^2}}$$
+    $$\mathrm{sim}(\text{Alice},\text{Fábio}) = \frac{0{,}5\cdot(-0{,}3) + (-0{,}5)\cdot(-0{,}3)}{\cdots} = \frac{-0{,}15 + 0{,}15}{\cdots} = 0$$
+  </div>
+
+  <p>O coeficiente de correlação de Pearson entre Alice e Fábio resultou em zero. Agora vamos ver como fica esse valor entre Alice e Nathan.</p>
+
+  <div class="board">
+    $$\mathrm{sim}(\text{Alice},\text{Nathan}) = -0{,}371$$
+  </div>
+
+  <p>Como o resultado da similaridade entre Alice e Nathan foi menor do que a similaridade entre Alice e Fábio, o sistema entende que é mais provável que Alice se interesse por um filme que interessou Fábio do que outro que interessou Nathan.</p>
+
+  <div class="table-wrap">
+  <table class="ratings">
+    <thead><tr><th></th><th>Filme A</th><th>Filme B</th><th>Filme C</th><th>Filme D</th></tr></thead>
+    <tbody>
+      <tr><th>Alice</th><td>5</td><td class="empty">—</td><td class="empty">—</td><td>4</td></tr>
+      <tr><th>Fábio</th><td>4</td><td>5</td><td class="empty">—</td><td>4</td></tr>
+      <tr><th>Nathan</th><td>1</td><td>3</td><td>5</td><td>2</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Agora que já temos o coeficiente de correlação entre eles, podemos tentar prever qual seria a nota de Alice para os filmes B e C para, por fim, concluir qual devemos recomendar a ela.</p>
+
+  <div class="board">
+    $$\hat{r}_{u,i} = \overline{r}_u + \frac{\sum_{v \in N} \mathrm{sim}(u,v)\cdot\left(r_{v,i}-\overline{r}_v\right)}{\sum_{v \in N} \left|\mathrm{sim}(u,v)\right|}$$
+    $$\hat{B} = 4{,}5 + \frac{0\cdot 0{,}7 + (-0{,}371)\cdot 0{,}25}{0{,}371}$$
+    $$\hat{B} = 4{,}5 + (-0{,}25) = 4{,}25$$
+  </div>
+
+  <p>Logo, o sistema prevê que Alice avaliará o Filme B com a nota 4,25. Enquanto isso, o Filme C foi avaliado com uma nota prevista de 2,25. Esse valor baixo se deve ao fato principalmente da distância entre o coeficiente de correlação de Pearson entre Alice e Nathan, somado ao fato de que foi o único que avaliou o filme.</p>
+
+  <p>Esse método, apesar de ter potencial de retornar boas recomendações, tem alguns problemas.</p>
+
+  <h4 id="complexidade">Complexidade O(N²)</h4>
+  <p>A quantidade de cálculos feitos escala com o quadrado do número de usuários, uma vez que, para cada usuário, deve-se calcular o coeficiente de correlação de Pearson (ou similaridade de cosseno) para todos os demais usuários na plataforma.</p>
+
+  <h4 id="tempo">Não sensível ao tempo</h4>
+  <p>Não leva em consideração os interesses atuais do usuário, o que em alguns cenários pode ser um problema.</p>
+
+  <h4 id="sparsity"><em>Matrix Sparsity Problem</em></h4>
+  <p>Nossa matriz tinha 3 dados faltantes, ou seja, 3 situações em que um usuário não avaliou um filme. Mas trata-se de um exemplo fictício. Em cenários reais, essa proporção de dados faltantes aumenta para quase 99% da matriz, uma vez que poucos ou nenhum usuário vai avaliar todos os itens presentes no sistema.</p>
+
+  <!-- ---- IBCF ---- -->
+  <h3 id="ibcf">Filtragem Colaborativa Baseada em Item (IBCF)</h3>
+  <p>Em contraste com os algoritmos de popularidade, a filtragem colaborativa baseada em usuário apresenta diversos avanços na personalização das recomendações. Entretanto, como observado anteriormente, essa abordagem possui algumas limitações, especialmente quanto a escalabilidade.</p>
+
+  <p>O <strong>Item-Based Collaborative Filtering</strong> é uma abordagem que, ao invés de procurar por usuários similares, procura por itens similares. Enquanto o UBCF procura usuários com gostos parecidos, para completar a matriz de avaliação usuário-item, o IBCF procura por itens similares, isto é, que foram alvo de interação positiva de um grupo similar de usuários, para que quando o usuário interagir positivamente (avaliar bem, por exemplo) com um item, o sistema saiba que pode recomendar mais itens similares. Isso resolve o problema da sensibilidade ao tempo mencionado anteriormente.</p>
+
+  <p>Um exemplo de aplicação para essa abordagem, é quando se interage com um produto em uma loja online, e logo abaixo podemos ver itens similares àquele. Isso significa que usuários que interagiram com aquele item, normalmente se interessaram pelos novos itens apresentados pelo sistema de recomendação.</p>
+
+  <p>O IBCF não resolve o problema O(N²), uma vez que ainda precisamos calcular a similaridade entre os itens (frequentemente usando a Similaridade de Cosseno), cuja complexidade continua sendo quadrática. Entretanto, a proporção de usuários em relação aos itens é, frequentemente, maior e nesses casos, o IBCF tira vantagem dessa diferença. Além disso, as relações entre os itens mudam com uma frequência muito menor do que as interações entre os usuários.</p>
+
+  <p>A esparsidade dos dados (<em>Matrix Sparsity Problem</em>) continua sendo um problema, junto ao <strong>cold start</strong>, uma vez que a filtragem colaborativa se beneficia de dados de interações, o que, naturalmente, é escasso no início de um sistema, na criação de uma nova conta de usuário e na inserção de um novo item. Para resolver esse problema, uma abordagem híbrida é frequentemente utilizada, com algoritmos baseados em popularidade para cold start com usuários, e <strong>Content-Based Filtering</strong> para cold start com itens.</p>
+</section>
+
+<!-- ============ SEÇÕES SÓ COM SUBTÍTULO NO ORIGINAL ============ -->
+<section id="svd">
+  <h2>Modelos Fatoriais e SVD</h2>
+  <p class="lead">Decomposição de matrizes esparsas em espaços latentes de dimensionalidade reduzida.</p>
+
+  <p>Tanto o UBCF quanto o IBCF trabalham diretamente sobre a matriz usuário-item: para recomendar, comparam linhas com linhas (ou colunas com colunas). Por isso, herdam os dois problemas que apareceram nas seções anteriores, o custo quadrático de comparar todos contra todos e a esparsidade da matriz, que em cenários reais passa de 99% de células vazias. Os <strong>modelos fatoriais</strong> mudam a pergunta. Em vez de procurar vizinhos, eles tentam descobrir um pequeno conjunto de características escondidas que expliquem as notas observadas, e passam a prever qualquer nota a partir delas.</p>
+
+  <h3 id="svd-latentes">Fatores latentes</h3>
+
+  <p>A premissa é que a nota de um usuário para um item depende de quanto o item possui certas características e de quanto aquele usuário gosta delas. Para filmes, essas características poderiam ser o quanto de comédia ou drama, a quantidade de ação ou a orientação ao público infantil. O ponto central é que ninguém precisa definir essas características de antemão: elas são <strong>inferidas</strong> a partir dos próprios padrões de notas, e por isso se chamam <em>fatores latentes</em>. Koren, Bell e Volinsky observam que o sistema costuma trabalhar com algo entre 20 e 100 fatores, e que alguns deles medem dimensões óbvias enquanto outros são completamente ininterpretáveis <sup class="ref"><a href="#fonte-1">[1]</a></sup>.</p>
+
+  <p>Cada item <em>i</em> passa a ser descrito por um vetor <em>q<sub>i</sub></em> e cada usuário <em>u</em> por um vetor <em>p<sub>u</sub></em>, ambos no mesmo espaço de <em>f</em> dimensões. A nota prevista é o produto interno dos dois:</p>
+
+  <div class="formula">$$\hat{r}_{ui} = q_i^{\top} p_u$$</div>
+
+  <p>\(\hat{r}_{ui}\) é a nota que o usuário \(u\) daria ao item \(i\), \(q_i \in \mathbb{R}^f\) mede o quanto o item possui cada um dos \(f\) fatores e \(p_u \in \mathbb{R}^f\) mede o quanto o usuário se interessa por itens com aquele fator, ambos podendo ser positivos ou negativos. Ou seja, a nota prevista é alta quando o item é forte justamente nos fatores que o usuário valoriza, e baixa quando os vetores apontam para direções diferentes.</p>
+
+  <p>Vamos voltar ao exemplo da Alice, do Fábio e do Nathan com <em>f</em> = 2. Na animação abaixo, a Alice e o Filme B são dois vetores no plano dos fatores. As componentes de cada vetor são lidas nos eixos, multiplicadas fator a fator, e as duas parcelas são empilhadas sobre a escala de notas até chegar à nota prevista. Os valores foram arredondados de um ajuste real que fazemos mais adiante nesta seção.</p>
+
+  <figure class="video">
+    <video controls autoplay loop muted playsinline src="videos/produto-interno.mp4"></video>
+    <figcaption>A nota prevista é a soma dos produtos fator a fator: 2,5 × 1,5 + 0,5 × 1,5 = 4,5.</figcaption>
+  </figure>
+
+  <p>Em forma matricial, todos os usuários e todos os itens cabem em duas matrizes menores, e a matriz de notas é aproximada pelo produto delas:</p>
+
+  <div class="formula">$$R \approx P\,Q^{\top}, \qquad P \in \mathbb{R}^{m \times f},\; Q \in \mathbb{R}^{n \times f}$$</div>
+
+  <p>\(R\) é a matriz usuário-item com \(m\) usuários e \(n\) itens, \(P\) tem uma linha \(p_u\) por usuário e \(Q\) tem uma linha \(q_i\) por item. Em vez de guardar \(m \cdot n\) células, o modelo guarda \((m+n)\cdot f\) números. Vamos ver isso com as matrizes do nosso exemplo, com os valores que o ajuste feito mais adiante produziu (o sinal “?” marca as notas desconhecidas):</p>
+
+  <div class="mat-eq">
+    <div class="mat"><div class="mat-title"><em>R</em> (3 × 4)</div>
+      <table class="mat-t"><tbody>
+        <tr><td>5</td><td class="q">?</td><td class="q">?</td><td>4</td></tr>
+        <tr><td>4</td><td>5</td><td class="q">?</td><td>4</td></tr>
+        <tr><td>1</td><td>3</td><td>5</td><td>2</td></tr>
+      </tbody></table></div>
+    <div class="mat-op">≈</div>
+    <div class="mat"><div class="mat-title"><em>P</em> (3 × 2)</div>
+      <table class="mat-t p"><tbody>
+        <tr><td>2,40</td><td>0,73</td></tr>
+        <tr><td>1,72</td><td>1,55</td></tr>
+        <tr><td>0,17</td><td>1,63</td></tr>
+      </tbody></table></div>
+    <div class="mat-op">×</div>
+    <div class="mat"><div class="mat-title"><em>Q</em><sup>T</sup> (2 × 4)</div>
+      <table class="mat-t q2"><tbody>
+        <tr><td>1,94</td><td>1,37</td><td>0,40</td><td>1,33</td></tr>
+        <tr><td>0,42</td><td>1,69</td><td>3,01</td><td>1,09</td></tr>
+      </tbody></table></div>
+  </div>
+
+  <p>Cada linha de \(P\) é o vetor de um usuário e cada coluna de \(Q^{	op}\) é o vetor de um filme. A célula da Alice com o Filme B, por exemplo, é a primeira linha de \(P\) vezes a segunda coluna de \(Q^{	op}\): 2,40 · 1,37 + 0,73 · 1,69 ≈ 4,52, exatamente a conta que a animação acima mostrou com valores arredondados. Agora o aviso: \(R\) tem 12 células, \(P\) tem 6 números e \(Q^{	op}\) tem 8, ou seja, 14 números para guardar uma matriz de 12 células. Neste exemplo o modelo não economiza nada, e ainda por cima tem mais parâmetros do que as 9 notas observadas, o que vai importar no final. A economia só aparece em escala real, e a animação abaixo mostra a mesma conta com uma matriz de 6 × 8 e depois com o tamanho do Netflix Prize <sup class="ref"><a href="#fonte-2">[2]</a></sup>.</p>
+
+  <figure class="video">
+    <video controls autoplay loop muted playsinline src="videos/compressao-matrizes.mp4"></video>
+    <figcaption>Contando células: uma matriz 6 × 8 (48 células) contra duas matrizes de fatores (28 números), e depois a mesma conta com 500 mil usuários, 17 mil filmes e 40 fatores.</figcaption>
+  </figure>
+
+  <h3 id="svd-classico">O SVD clássico</h3>
+
+  <p>O nome “SVD” vem de <em>Singular Value Decomposition</em>, a <strong>decomposição em valores singulares</strong>. A ideia central é que qualquer matriz, por mais bagunçada que pareça, pode ser escrita como a composição de três movimentos simples: um giro, um esticamento ao longo dos eixos e outro giro <sup class="ref"><a href="#fonte-7">[7]</a></sup>. Vamos entender isso em três passos: primeiro o que cada movimento faz, depois como isso vira uma soma de camadas e, por fim, como cortar camadas dá uma aproximação da matriz.</p>
+
+  <h4>Girar, esticar e girar de novo</h4>
+
+  <p>Começamos com uma matriz pequena o bastante para desenhar, \(A = \begin{pmatrix}2 & 2\\-1 & 1\end{pmatrix}\). Ela atua sobre o plano: pega cada ponto e o leva para outro lugar. Se aplicarmos \(A\) a todos os pontos do círculo de raio 1, o resultado é uma elipse. O SVD diz como essa elipse nasce, em três movimentos, e a animação abaixo mostra cada um deles.</p>
+
+  <figure class="video">
+    <video controls autoplay loop muted playsinline src="videos/svd-tres-movimentos.mp4"></video>
+    <figcaption>O círculo vira a elipse de <em>A</em> em três movimentos: <em>V</em><sup>T</sup> gira, Σ estica nos eixos e <em>U</em> reflete.</figcaption>
+  </figure>
+
+  <div class="formula">$$A = U\,\Sigma\,V^{\top}$$</div>
+
+  <p>Para uma matriz real \(A\) de \(m \times n\), \(U\) (\(m \times m\)) e \(V\) (\(n \times n\)) são matrizes <strong>ortogonais</strong>, o que significa que elas só giram ou refletem, sem mudar comprimentos nem ângulos. \(\Sigma\) (\(m \times n\)) é diagonal, e os números na diagonal, \(\sigma_1 \ge \sigma_2 \ge \dots \ge 0\), são os <strong>valores singulares</strong> <sup class="ref"><a href="#fonte-7">[7]</a></sup>. Lendo da direita para a esquerda, que é a ordem em que a matriz age sobre um ponto: \(V^{\top}\) gira o plano de modo que duas direções especiais \(v_1\) e \(v_2\) (a 45° dos eixos, na animação) caiam sobre os eixos; \(\Sigma\) estica cada eixo por um fator \(\sigma_j\); e \(U\) gira ou reflete o resultado para a posição final. Ou seja, os valores singulares da animação, \(\sigma_1 = 2\sqrt{2} \approx 2{,}83\) e \(\sigma_2 = \sqrt{2} \approx 1{,}41\), são os comprimentos dos semieixos da elipse <sup class="ref"><a href="#fonte-7">[7]</a></sup>, e cada \(\sigma_j\) responde à pergunta “quanto a matriz estica nessa direção especial?”. Direções com \(\sigma\) grande são as que mais pesam no resultado, e as com \(\sigma\) pequeno quase não importam. Essa é a intuição que vamos usar a seguir.</p>
+
+  <h4>A matriz como soma de camadas</h4>
+
+  <p>Há uma segunda leitura da mesma fatoração, mais útil para recomendação. Multiplicando \(U\), \(\Sigma\) e \(V^{\top}\), a matriz vira uma soma de camadas, uma por valor singular <sup class="ref"><a href="#fonte-7">[7]</a></sup>:</p>
+
+  <div class="formula">$$A = \sum_{j=1}^{r} \sigma_j\, u_j\, v_j^{\top}$$</div>
+
+  <p>\(r\) é o número de valores singulares diferentes de zero, \(u_j\) é a \(j\)-ésima coluna de \(U\) (um número por usuário, no nosso caso) e \(v_j\) é a \(j\)-ésima coluna de \(V\) (um número por item). O produto \(u_j v_j^{\top}\) é uma matriz do mesmo tamanho de \(A\) em que toda linha é o mesmo padrão \(v_j\), multiplicado pelo número que \(u_j\) dá àquele usuário. Cada camada é, portanto, um único “padrão de gosto entre os itens”, sentido com intensidades diferentes por cada usuário, e \(\sigma_j\) é o peso dessa camada. Como os \(\sigma_j\) estão em ordem decrescente, as camadas vêm da mais importante para a menos importante.</p>
+
+  <h4>Cortar camadas: o SVD truncado</h4>
+
+  <p>Se guardarmos só as \(k\) primeiras camadas, obtemos uma versão mais simples da matriz original:</p>
+
+  <div class="formula">$$A_k = \sum_{j=1}^{k} \sigma_j\, u_j v_j^{\top} = U_k \Sigma_k V_k^{\top}$$</div>
+
+  <p>\(k\) é o número de fatores mantidos e \(U_k\), \(\Sigma_k\) e \(V_k\) são as partes de \(U\), \(\Sigma\) e \(V\) que sobram. O teorema de Eckart–Young–Mirsky diz que não existe nenhuma outra matriz de posto \(k\) mais próxima de \(A\) do que \(A_k\), no sentido do erro de Frobenius, e que esse erro vale \(\sqrt{\sigma_{k+1}^2 + \sigma_{k+2}^2 + \cdots}\) <sup class="ref"><a href="#fonte-5">[5]</a></sup>. Em palavras: descartar as camadas de menor peso é o melhor corte possível, e o erro é justamente o peso do que foi descartado. Isso conecta o SVD ao modelo da seção anterior: tomando \(P = U_k \Sigma_k^{1/2}\) e \(Q = V_k \Sigma_k^{1/2}\), temos \(P Q^{\top} = A_k\). O SVD truncado já é uma fatoração do tipo \(R \approx P\,Q^{\top}\).</p>
+
+  <h4>O obstáculo: a matriz tem buracos</h4>
+
+  <p>Há um problema. A garantia acima vale para uma matriz <strong>completa</strong>, e a nossa não é. Como dizem Koren, Bell e Volinsky, o SVD convencional não está definido quando o conhecimento sobre a matriz é incompleto <sup class="ref"><a href="#fonte-1">[1]</a></sup>. Os primeiros sistemas contornavam isso por <em>imputação</em>: preenchiam as células vazias com algum valor, como a média da coluna, e só então aplicavam o SVD. Vamos fazer isso com a nossa matriz, preenchendo os vazios com a média das notas conhecidas de cada filme (destacados em amarelo). Vamos chamar a matriz resultante de \(F\).</p>
+
+  <div class="table-wrap">
+  <table class="ratings">
+    <thead><tr><th></th><th>Filme A</th><th>Filme B</th><th>Filme C</th><th>Filme D</th></tr></thead>
+    <tbody>
+      <tr><th>Alice</th><td>5</td><td class="imp">4</td><td class="imp">5</td><td>4</td></tr>
+      <tr><th>Fábio</th><td>4</td><td>5</td><td class="imp">5</td><td>4</td></tr>
+      <tr><th>Nathan</th><td>1</td><td>3</td><td>5</td><td>2</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h4>Vendo as camadas no nosso exemplo</h4>
+
+  <p>Aplicando o SVD à matriz \(F\) (3 × 4), os três valores singulares são aproximadamente 14,00; 2,49 e 0,83. Cada um corresponde a uma camada, e as três somadas devolvem \(F\) (valores arredondados):</p>
+
+  <div class="mat-eq">
+    <div class="mat"><div class="mat-title">Camada 1 &nbsp;(σ<sub>1</sub> = 14,00)</div>
+      <table class="mat-t"><tbody>
+        <tr><td>3,97</td><td>4,51</td><td>5,45</td><td>3,83</td></tr>
+        <tr><td>4,00</td><td>4,54</td><td>5,49</td><td>3,85</td></tr>
+        <tr><td>2,59</td><td>2,94</td><td>3,55</td><td>2,49</td></tr>
+      </tbody></table></div>
+    <div class="mat-op">+</div>
+    <div class="mat"><div class="mat-title">Camada 2 &nbsp;(σ<sub>2</sub> = 2,49)</div>
+      <table class="mat-t"><tbody>
+        <tr><td>0,85</td><td>−0,11</td><td>−0,70</td><td>0,24</td></tr>
+        <tr><td>0,22</td><td>−0,03</td><td>−0,18</td><td>0,06</td></tr>
+        <tr><td>−1,65</td><td>0,21</td><td>1,36</td><td>−0,47</td></tr>
+      </tbody></table></div>
+    <div class="mat-op">+</div>
+    <div class="mat"><div class="mat-title">Camada 3 &nbsp;(σ<sub>3</sub> = 0,83)</div>
+      <table class="mat-t"><tbody>
+        <tr><td>0,18</td><td>−0,40</td><td>0,25</td><td>−0,07</td></tr>
+        <tr><td>−0,22</td><td>0,49</td><td>−0,31</td><td>0,08</td></tr>
+        <tr><td>0,06</td><td>−0,14</td><td>0,09</td><td>−0,02</td></tr>
+      </tbody></table></div>
+  </div>
+
+  <p>Repare no que cada camada captura. A <strong>camada 1</strong> tem todos os números positivos e concentra cerca de 97% da soma dos quadrados dos valores de \(F\): é a camada da “nota típica”, em que filmes bem avaliados recebem notas altas de todo mundo, com o Nathan um pouco abaixo (as entradas de \(u_1\) são 0,64; 0,64 e 0,42). A <strong>camada 2</strong> tem sinais diferentes e separa grupos: \(u_2 = (0{,}46;\ 0{,}12;\ -0{,}88)\) coloca a Alice e o Fábio de um lado e o Nathan do outro, e \(v_2 = (0{,}75;\ -0{,}09;\ -0{,}62;\ 0{,}21)\) coloca o Filme A (e o D) de um lado e o C do outro. Isso é exatamente o contraste que existe nos dados, já que o Nathan deu 1 ao Filme A e 5 ao C, ao contrário dos outros dois. A <strong>camada 3</strong> tem peso pequeno e guarda só detalhes. Um aviso: o sinal de \(u_j\) e \(v_j\) pode ser trocado ao mesmo tempo sem alterar a camada, então os sinais em si não significam nada, apenas as diferenças entre eles <sup class="ref"><a href="#fonte-7">[7]</a></sup>.</p>
+
+  <p>Agora podemos cortar. Mantendo \(k = 2\), ficamos com as camadas 1 e 2 e descartamos a 3, cujo peso é \(\sigma_3 = 0{,}83\); o erro de Frobenius da aproximação é exatamente esse valor. Com \(k = 1\), o erro sobe para \(\sqrt{2{,}49^2 + 0{,}83^2} \approx 2{,}62\) <sup class="ref"><a href="#fonte-5">[5]</a></sup>. A aproximação com \(k = 2\) reconstrói a nota da Alice para o Filme B como 4,40 e para o Filme C como 4,75. Repare no segundo número: a média da coluna C é a nota 5 do Nathan, o único que avaliou o filme. O 4,75 da Alice, portanto, veio quase inteiro do valor que nós mesmos inventamos ao preencher a célula, e não do comportamento dela. Esse é o problema que Koren, Bell e Volinsky apontam: a imputação encarece o método, porque aumenta muito a quantidade de dados, e uma imputação imprecisa pode distorcer os dados consideravelmente <sup class="ref"><a href="#fonte-1">[1]</a></sup>.</p>
+
+  <h3 id="svd-sgd">Treinando apenas com o que foi observado</h3>
+
+  <p>A saída adotada nos trabalhos seguintes foi modelar diretamente só as notas observadas. Funk resumiu a ideia dizendo que, ao olhar apenas o erro nas notas conhecidas, podemos simplesmente ignorar o erro nas bilhões de células vazias <sup class="ref"><a href="#fonte-2">[2]</a></sup>. Os vetores \(p_u\) e \(q_i\) deixam de ser calculados por uma decomposição e passam a ser <strong>aprendidos</strong>, minimizando o erro quadrado sobre as notas conhecidas:</p>
+
+  <div class="formula">$$\min_{p_{\ast},\,q_{\ast}} \sum_{(u,i)\in\kappa} \left(r_{ui} - q_i^{\top} p_u\right)^2 + \lambda\left(\lVert q_i \rVert^2 + \lVert p_u \rVert^2\right)$$</div>
+
+  <p>\(\kappa\) é o conjunto de pares \((u,i)\) cuja nota \(r_{ui}\) é conhecida, ou seja, o conjunto de treino. O primeiro termo mede o quanto o modelo erra as notas que já vimos. O segundo termo, controlado por \(\lambda\), penaliza vetores de módulo grande. Sem ele, o modelo teria liberdade de sobra para decorar as poucas notas observadas, e a generalização para as notas desconhecidas pioraria. O valor de \(\lambda\) costuma ser escolhido por validação cruzada <sup class="ref"><a href="#fonte-1">[1]</a></sup>.</p>
+
+  <p>Para minimizar essa função, Funk popularizou o <strong>gradiente descendente estocástico</strong> (SGD). O algoritmo percorre as notas do treino e, para cada uma, calcula o erro de previsão \(e_{ui} = r_{ui} - q_i^{\top} p_u\) e move os dois vetores na direção oposta ao gradiente <sup class="ref"><a href="#fonte-1">[1]</a></sup>:</p>
+
+  <div class="formula">$$q_i \leftarrow q_i + \gamma\left(e_{ui}\, p_u - \lambda\, q_i\right) \qquad p_u \leftarrow p_u + \gamma\left(e_{ui}\, q_i - \lambda\, p_u\right)$$</div>
+
+  <p>\(\gamma\) é a taxa de aprendizado, que controla o tamanho do passo. Em palavras: se o modelo previu uma nota menor que a real (\(e_{ui} > 0\)), o vetor do usuário anda um pouco em direção ao vetor do item e vice-versa, de modo que o produto interno aumente. O termo \(-\lambda\) puxa os vetores de volta para a origem. Vamos ver um passo completo com a nossa matriz. Considere a nota 5 que a Alice deu ao Filme A, com \(p_{Alice} = (1;\, 0{,}5)\) e \(q_A = (0{,}5;\, 1)\) como valores iniciais, \(\gamma = 0{,}05\) e \(\lambda = 0{,}02\).</p>
+
+  <div class="board">
+    $$\hat{r} = 1\cdot 0{,}5 + 0{,}5\cdot 1 = 1{,}0 \quad\Rightarrow\quad e = 5 - 1{,}0 = 4{,}0$$
+    $$p_{Alice} \leftarrow \begin{pmatrix}1\\0{,}5\end{pmatrix} + 0{,}05\left(4\begin{pmatrix}0{,}5\\1\end{pmatrix} - 0{,}02\begin{pmatrix}1\\0{,}5\end{pmatrix}\right) = \begin{pmatrix}1{,}099\\0{,}6995\end{pmatrix}$$
+    $$q_A \leftarrow \begin{pmatrix}0{,}5\\1\end{pmatrix} + 0{,}05\left(4\begin{pmatrix}1\\0{,}5\end{pmatrix} - 0{,}02\begin{pmatrix}0{,}5\\1\end{pmatrix}\right) = \begin{pmatrix}0{,}6995\\1{,}099\end{pmatrix}$$
+    $$\hat{r}_{novo} = 1{,}099\cdot 0{,}6995 + 0{,}6995\cdot 1{,}099 \approx 1{,}54 \quad\Rightarrow\quad e \approx 3{,}46$$
+  </div>
+
+  <p>Os dois vetores usam os valores <em>antigos</em> um do outro no cálculo, e um único passo já reduziu o erro de 4,0 para 3,46. O treinamento completo repete esse passo para todas as notas conhecidas, várias vezes (cada volta pelo conjunto de treino é uma <em>época</em>).</p>
+
+  <figure class="video">
+    <video controls autoplay loop muted playsinline src="videos/sgd-passo.mp4"></video>
+    <figcaption>Um passo de SGD aproxima os vetores da usuária e do item, e o erro de previsão diminui.</figcaption>
+  </figure>
+
+  <h3 id="svd-vieses">Vieses de usuário e de item</h3>
+
+  <p>Existe uma ideia que já apareceu na seção de filtragem colaborativa: um 5 não significa a mesma coisa para todo mundo. O Pearson resolvia isso subtraindo a média de cada usuário. Nos modelos fatoriais, o equivalente é separar da nota a parte que é só tendência do usuário ou do item, e deixar o produto interno explicar apenas a interação de verdade. Koren, Bell e Volinsky chamam essa parte de <em>vieses</em> (ou <em>intercepts</em>) e dão uma aproximação de primeira ordem <sup class="ref"><a href="#fonte-1">[1]</a></sup>:</p>
+
+  <div class="formula">$$b_{ui} = \mu + b_i + b_u \qquad\qquad \hat{r}_{ui} = \mu + b_i + b_u + q_i^{\top} p_u$$</div>
+
+  <p>\(\mu\) é a média global das notas, \(b_i\) é o quanto o item costuma ficar acima ou abaixo da média e \(b_u\) é o mesmo para o usuário. A nota fica decomposta em quatro componentes: média global, viés do item, viés do usuário e interação usuário-item. O exemplo do artigo ajuda a fixar: se a média geral é 3,7 estrelas, Titanic costuma receber 0,5 acima da média e Joe é um usuário crítico que dá 0,3 abaixo, a estimativa de base para a nota de Joe a Titanic é 3,7 + 0,5 − 0,3 = 3,9. Os vieses entram no treino como parâmetros adicionais: a função de custo ganha \(b_u^2 + b_i^2\) dentro do termo de regularização, e o SGD ganha as atualizações \(b_u \leftarrow b_u + \gamma(e_{ui} - \lambda b_u)\) e \(b_i \leftarrow b_i + \gamma(e_{ui} - \lambda b_i)\) <sup class="ref"><a href="#fonte-4">[4]</a></sup>.</p>
+
+  <h3 id="svd-als">Mínimos quadrados alternados (ALS)</h3>
+
+  <p>O SGD não é o único jeito de minimizar a função de custo. Como \(q_i\) e \(p_u\) são ambos desconhecidos, o problema conjunto não é convexo. Mas, se fixarmos um dos lados, ele vira um problema quadrático, que tem solução ótima exata. O <strong>ALS</strong> (<em>Alternating Least Squares</em>) aproveita isso: fixa todos os \(p_u\) e recalcula todos os \(q_i\) por mínimos quadrados, depois fixa os \(q_i\) e recalcula os \(p_u\), e repete. Cada passo garante que o custo não aumenta <sup class="ref"><a href="#fonte-1">[1]</a></sup>.</p>
+
+  <p>Segundo Koren, Bell e Volinsky, o SGD costuma ser mais simples e rápido, mas o ALS é preferível em dois casos. O primeiro é a paralelização: cada \(q_i\) é calculado independentemente dos demais, e cada \(p_u\) também. O segundo são sistemas baseados em <strong>feedback implícito</strong> (compras, cliques, tempo assistido), onde a matriz não é esparsa, porque ausência de interação também carrega informação, e percorrer um a um todos os pares, como o SGD faz, seria inviável <sup class="ref"><a href="#fonte-1">[1]</a></sup>.</p>
+
+  <p>O artigo que formalizou esse caso, de Hu, Koren e Volinsky, trata a interação como uma preferência binária \(p_{ui}\) (1 se houve interação, 0 caso contrário) ponderada por uma confiança \(c_{ui} = 1 + \alpha\, r_{ui}\), em que \(r_{ui}\) é, por exemplo, o número de vezes que o usuário consumiu o item. A função de custo passa a somar sobre <em>todos</em> os pares, e cada fator de usuário tem solução fechada <sup class="ref"><a href="#fonte-3">[3]</a></sup>:</p>
+
+  <div class="formula">$$\min_{x_{\ast},\,y_{\ast}} \sum_{u,i} c_{ui}\left(p_{ui} - x_u^{\top} y_i\right)^2 + \lambda\left(\sum_u \lVert x_u \rVert^2 + \sum_i \lVert y_i \rVert^2\right) \qquad x_u = \left(Y^{\top} C^u Y + \lambda I\right)^{-1} Y^{\top} C^u\, p(u)$$</div>
+
+  <p>Nessa notação do artigo, \(x_u\) e \(y_i\) são os fatores de usuário e de item, \(Y\) é a matriz com todos os \(y_i\) nas linhas, \(C^u\) é a matriz diagonal com as confianças \(c_{ui}\) do usuário \(u\), e \(p(u)\) é o vetor de preferências dele. O custo desse cálculo seria alto, mas o artigo usa o fato de que \(Y^{\top} C^u Y = Y^{\top} Y + Y^{\top}(C^u - I)Y\). O primeiro termo é igual para todos os usuários e é calculado uma vez, e o segundo só envolve os itens com os quais aquele usuário interagiu, que são poucos <sup class="ref"><a href="#fonte-3">[3]</a></sup>.</p>
+
+  <h3 id="svd-exemplo">Aplicando ao exemplo</h3>
+
+  <p>Agora podemos fechar o ciclo e ajustar o modelo à nossa matriz. Usamos \(f = 2\), SGD com \(\gamma = 0{,}05\) e \(\lambda = 0{,}02\), 2000 épocas e a inicialização fixa mostrada no código ao final da seção. Os números abaixo vêm da execução desse código, e não de uma dedução manual. Nas notas conhecidas, o modelo erra muito pouco (RMSE de treino de aproximadamente 0,02), e preenche as células vazias assim:</p>
+
+  <div class="table-wrap">
+  <table class="ratings">
+    <thead><tr><th></th><th>Filme A</th><th>Filme B</th><th>Filme C</th><th>Filme D</th></tr></thead>
+    <tbody>
+      <tr><th>Alice</th><td>4,96</td><td class="pred">4,52</td><td class="pred">3,16</td><td>3,99</td></tr>
+      <tr><th>Fábio</th><td>3,98</td><td>4,97</td><td class="pred">5,34</td><td>3,97</td></tr>
+      <tr><th>Nathan</th><td>1,01</td><td>2,99</td><td>4,97</td><td>1,99</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Para a Alice, o filme B (4,52) continua à frente do C (3,16), a mesma conclusão do UBCF. Vale comparar com tudo o que já calculamos sobre os mesmos dados:</p>
+
+  <div class="table-wrap">
+  <table class="cmp">
+    <thead><tr><th>Método</th><th>Alice, Filme B</th><th>Alice, Filme C</th></tr></thead>
+    <tbody>
+      <tr><td>UBCF com Pearson</td><td>4,25</td><td>2,25</td></tr>
+      <tr><td>SVD truncado com imputação pela média (<em>k</em> = 2)</td><td>4,40</td><td>4,75</td></tr>
+      <tr><td>Fatoração por SGD (<em>f</em> = 2)</td><td>4,52</td><td>3,16</td></tr>
+      <tr><td>Fatoração por SGD com vieses (<em>f</em> = 2)</td><td>4,99</td><td>4,18</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Os quatro métodos colocam o B acima do C, mas a nota do C varia de 2,25 a 4,75. Isso não é defeito de algum deles em particular. Ninguém além do Nathan avaliou o Filme C, então não existe informação suficiente para fixar essa coluna, e cada método preenche o vazio do seu jeito. Com 14 parâmetros para 9 notas, o modelo também consegue reproduzir quase perfeitamente os dados de treino sem que isso garanta qualquer coisa sobre o que ele prevê fora deles. Repare ainda que a nota prevista do Fábio para o Filme C (5,34) passou do máximo da escala. Em sistemas reais, a predição é limitada à faixa de notas válida, e a avaliação é feita sobre notas separadas do treino. Em conjuntos como o do Netflix Prize, com mais de 100 milhões de notas, há muito mais notas por parâmetro do que aqui <sup class="ref"><a href="#fonte-1">[1]</a></sup>. O nosso exemplo serve para mostrar a mecânica, não para escolher um vencedor.</p>
+
+  <details>
+    <summary>Código que gera os números deste exemplo</summary>
+    <pre><code>import numpy as np
+R=np.array([[5,np.nan,np.nan,4],[4,5,np.nan,4],[1,3,5,2]]);M=~np.isnan(R)
+obs=[(u,i) for u in range(3) for i in range(4) if M[u,i]]
+P0=np.array([[1,.5],[1,1],[.5,1]]);Q0=np.array([[.5,1],[1,1],[.5,1],[1,.5]])
+def fit(bias,g=.05,lam=.02,ep=2000):
+    P=P0.copy();Q=Q0.copy();mu=np.nanmean(R) if bias else 0;bu=np.zeros(3);bi=np.zeros(4)
+    for e in range(ep):
+        for u,i in obs:
+            err=R[u,i]-(mu+bu[u]+bi[i]+P[u]@Q[i]);pu=P[u].copy()
+            if bias: bu[u]+=g*(err-lam*bu[u]);bi[i]+=g*(err-lam*bi[i])
+            P[u]+=g*(err*Q[i]-lam*P[u]);Q[i]+=g*(err*pu-lam*Q[i])
+    return mu+bu[:,None]+bi[None]+P@Q.T,P,Q
+for b in (0,1):
+    X,P,Q=fit(b);print(&#x27;bias&#x27;,b);print(np.round(X,2));print(np.round(P,2));print(np.round(Q,2))
+    print(&#x27;rmse&#x27;,np.sqrt(np.mean([(R[u,i]-X[u,i])**2 for u,i in obs])))
+# first step by hand, order of obs: (0,0) first
+P=P0.copy();Q=Q0.copy();g=.05;lam=.02
+u,i=0,0;err=R[u,i]-P[u]@Q[i];pu=P[u].copy();print(&#x27;err&#x27;,err,&#x27;pred&#x27;,P[u]@Q[i])
+P[u]+=g*(err*Q[i]-lam*P[u]);Q[i]+=g*(err*pu-lam*Q[i]);print(P[u],Q[i],P[u]@Q[i],R[u,i]-P[u]@Q[i])</code></pre>
+  </details>
+
+  <h3 id="svd-extensoes">Extensões</h3>
+
+  <p>Uma das vantagens apontadas para a fatoração é a flexibilidade: o mesmo arcabouço de aprendizado aceita informações adicionais. Com feedback implícito, o usuário também é descrito pelos itens com os quais interagiu. Seja \(N(u)\) o conjunto desses itens e \(x_j\) um novo conjunto de fatores por item. A previsão fica (na forma simplificada da equação 6 de Koren, Bell e Volinsky, sem atributos demográficos) <sup class="ref"><a href="#fonte-1">[1]</a></sup>:</p>
+
+  <div class="formula">$$\hat{r}_{ui} = \mu + b_i + b_u + q_i^{\top}\left(p_u + |N(u)|^{-1/2} \sum_{j \in N(u)} x_j\right)$$</div>
+
+  <p>Essa variante é conhecida como <strong>SVD++</strong> <sup class="ref"><a href="#fonte-4">[4]</a></sup>. Os mesmos autores mostram ainda a dinâmica temporal, em que \(b_i\), \(b_u\) e \(p_u\) passam a depender do tempo, \(b_i(t)\), \(b_u(t)\) e \(p_u(t)\), porque a popularidade dos itens e o gosto dos usuários mudam. Os vetores \(q_i\) ficam estáticos, já que os itens, ao contrário das pessoas, não mudam. E, quando algumas observações merecem mais peso que outras, cada termo do erro é multiplicado por uma confiança \(c_{ui}\) <sup class="ref"><a href="#fonte-1">[1]</a></sup>.</p>
+
+  <h3 id="svd-limitacoes">Limitações</h3>
+
+  <h4><em>Cold start</em></h4>
+  <p>Um usuário ou item novo não tem fatores, porque os vetores só existem para quem apareceu no treino. Na variante SVD++, por exemplo, incluir um usuário novo exige retreinar o modelo <sup class="ref"><a href="#fonte-6">[6]</a></sup>. Variantes como o SVD assimétrico ou os modelos por grupos reduzem a necessidade de retreino, mas continuam precisando de algumas interações confiáveis. Voltamos, então, à abordagem híbrida da seção anterior: popularidade para usuários novos e <em>Content-Based Filtering</em> para itens novos.</p>
+
+  <h4>Interpretabilidade</h4>
+  <p>Os fatores são números aprendidos, e ninguém os nomeou. Alguns acabam correspondendo a algo reconhecível, como “comédia versus drama”, mas o próprio artigo admite que outros são completamente ininterpretáveis <sup class="ref"><a href="#fonte-1">[1]</a></sup>. Explicar ao usuário por que um item foi recomendado fica mais difícil do que nos métodos de vizinhança.</p>
+
+  <h4>Hiperparâmetros e não convexidade</h4>
+  <p>É preciso escolher o número de fatores \(f\), a regularização \(\lambda\), a taxa de aprendizado \(\gamma\) e o número de épocas. Como o problema conjunto não é convexo, SGD e ALS encontram um ponto de mínimo local que depende da inicialização, algo que o próprio Funk notou ao observar que o ponto de partida dos vetores importa quando o treino é interrompido cedo <sup class="ref"><a href="#fonte-2">[2]</a></sup>. Mais fatores melhoram a personalização até o ponto em que o modelo passa a decorar os dados <sup class="ref"><a href="#fonte-6">[6]</a></sup>.</p>
+
+  <h4>Modelo estático</h4>
+  <p>Na forma básica, a fatoração não distingue uma nota de ontem de uma de cinco anos atrás, o mesmo defeito apontado no UBCF. A dinâmica temporal descrita em Extensões corrige isso, mas ao custo de mais parâmetros.</p>
+
+  <p>Os fatores latentes são, no fundo, vetores que representam usuários e itens em um espaço de poucas dimensões, aprendidos de forma que a proximidade entre eles tenha significado. Essa ideia de representar entidades como vetores e aprender as representações aparece de novo nas seções de redes neurais e de <em>embeddings</em> por tradução.</p>
+
+  <aside class="sources" id="fontes-svd">
+    <h4>Fontes</h4>
+    <ol>
+      <li id="fonte-1">Koren, Y.; Bell, R.; Volinsky, C. <em>Matrix Factorization Techniques for Recommender Systems</em>. IEEE Computer, 42(8), p. 30–37, 2009. DOI: <a href="https://doi.org/10.1109/MC.2009.263">10.1109/MC.2009.263</a>. Texto lido a partir de uma cópia: <a href="https://homepages.math.uic.edu/~lreyzin/s15_mcs590/koren09.pdf">homepages.math.uic.edu</a>.</li>
+      <li id="fonte-2">Funk, S. <em>Netflix Update: Try This at Home</em>. Blog, dezembro de 2006. <a href="https://sifter.org/~simon/journal/20061211.html">sifter.org/~simon/journal/20061211.html</a>.</li>
+      <li id="fonte-3">Hu, Y.; Koren, Y.; Volinsky, C. <em>Collaborative Filtering for Implicit Feedback Datasets</em>. IEEE ICDM 2008, p. 263–272. Texto lido: <a href="http://yifanhu.net/PUB/cf.pdf">yifanhu.net/PUB/cf.pdf</a>.</li>
+      <li id="fonte-4">Surprise (biblioteca Python). <em>Matrix Factorization-based algorithms</em> (documentação de SVD, SVD++ e NMF). <a href="https://surprise.readthedocs.io/en/stable/matrix_factorization.html">surprise.readthedocs.io</a>.</li>
+      <li id="fonte-5">Wikipedia. <em>Low-rank approximation</em> (teorema de Eckart–Young–Mirsky). <a href="https://en.wikipedia.org/wiki/Low-rank_approximation">en.wikipedia.org/wiki/Low-rank_approximation</a>. Fonte secundária: o resultado original é de Eckart e Young (1936) e não foi consultado diretamente.</li>
+      <li id="fonte-6">Wikipedia. <em>Matrix factorization (recommender systems)</em>. <a href="https://en.wikipedia.org/wiki/Matrix_factorization_(recommender_systems)">en.wikipedia.org/wiki/Matrix_factorization_(recommender_systems)</a>. Fonte secundária, usada para as variantes e para o cold start.</li>
+      <li id="fonte-7">Wikipedia. <em>Singular value decomposition</em> (definição, interpretação geométrica, soma de matrizes de posto 1 e ambiguidade de sinal). <a href="https://en.wikipedia.org/wiki/Singular_value_decomposition">en.wikipedia.org/wiki/Singular_value_decomposition</a>. Fonte secundária; a página foi lida apenas até onde a ferramenta de leitura alcançou, e isso cobre os trechos citados.</li>
+      <li>Exemplo numérico (matriz de Alice, Fábio e Nathan, tabelas de imputação e de ajuste, comparação entre métodos): calculado neste documento com o código acima, a partir da matriz usada nas seções anteriores.</li>
+    </ol>
+  </aside>
+</section>
+
+<section id="tfidf">
+  <h2>Modelagem Linguística (TF-IDF)</h2>
+  <p class="lead">Formulação logarítmica para penalização de termos ubíquos e recompensa de léxicos característicos.</p>
+</section>
+
+<section id="cbr">
+  <h2>Raciocínio Baseado em Conhecimento (CBR)</h2>
+  <p class="lead">Otimização de similaridade de atributos entre problemas alvo e repositórios indexados.</p>
+</section>
+
+<section id="rnn">
+  <h2>Redes Neurais Recorrentes (RNN e RvNN)</h2>
+  <p class="lead">Propagação vetorial de estados ocultos, retropropagação no tempo (BPTT) e mitigação do “Vanishing Gradient” com portas lógicas.</p>
+</section>
+
+<section id="transe">
+  <h2>Translating Embeddings (TransE)</h2>
+  <p class="lead">Mapeamento e distorção translatória em subespaços dimensionais para grafos</p>
+</section>
+
+</main>
+</div>
+
+<script>
+  // Destaca no sumário a seção visível
+  (function(){
+    var links = Array.prototype.slice.call(document.querySelectorAll('nav a'));
+    var map = {};
+    links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+    var targets = Object.keys(map).map(function(id){ return document.getElementById(id); }).filter(Boolean);
+    if(!('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          links.forEach(function(a){ a.classList.remove('active'); });
+          map[e.target.id].classList.add('active');
+        }
+      });
+    },{rootMargin:'0px 0px -75% 0px'});
+    targets.forEach(function(t){ io.observe(t); });
+  })();
+</script>
+</body>
+</html>
