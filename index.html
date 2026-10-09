@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Técnicas de Sistemas de Recomendação</title>
+<script>
+(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}
+if(t!=='light'&&t!=='dark'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
+document.documentElement.setAttribute('data-theme',t)})();
+</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"
@@ -13,9 +18,10 @@
     --bg:#fdfdfc; --fg:#1f2328; --muted:#6b7280; --accent:#1d4ed8; --line:#e5e7eb;
     --card:#f6f7f9; --note:#eef4ff; --board:#0b3d1c; --boardfg:#f4f4ee;
   }
-  @media (prefers-color-scheme: dark){
-    :root{ --bg:#14161a; --fg:#e6e8eb; --muted:#9aa3af; --accent:#7aa2ff; --line:#2b3038;
-           --card:#1b1e24; --note:#1a2233; --board:#0b3d1c; --boardfg:#f4f4ee; }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#14161a; --fg:#e6e8eb; --muted:#9aa3af; --accent:#7aa2ff; --line:#2b3038;
+    --card:#1b1e24; --note:#1a2233; --board:#0b3d1c; --boardfg:#f4f4ee;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth; scroll-padding-top:1rem}
@@ -86,19 +92,90 @@
   table.mat-t td{padding:.3rem .6rem; text-align:center; font-size:.95rem; font-variant-numeric:tabular-nums}
   table.mat-t td.q{color:var(--muted)}
   table.mat-t.p td{color:#f97316} table.mat-t.q2 td{color:#16a34a}
+
+  /* alternância de tema */
+  .theme-toggle{position:fixed; top:.7rem; right:.7rem; z-index:40; width:2.25rem; height:2.25rem; display:grid; place-items:center;
+    border:1px solid var(--line); border-radius:50%; background:var(--bg); color:var(--muted); cursor:pointer; opacity:.85; padding:0}
+  .theme-toggle:hover,.theme-toggle:focus-visible{opacity:1; color:var(--fg)}
+  .theme-toggle svg{width:1.1rem; height:1.1rem}
+  :root[data-theme="dark"] .ic-moon{display:none}
+  :root:not([data-theme="dark"]) .ic-sun{display:none}
+  /* sumário recolhível */
+  .nav-head{display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.75rem}
+  .nav-head h2{margin:0}
+  .toc-toggle{display:inline-flex; align-items:center; gap:.35rem; border:1px solid var(--line); background:transparent; color:var(--muted);
+    border-radius:6px; padding:.2rem .5rem; font:inherit; font-size:12px; cursor:pointer}
+  .toc-toggle:hover,.toc-toggle:focus-visible{color:var(--fg); background:var(--card)}
+  .toc-toggle svg{width:.9rem; height:.9rem; transition:transform .2s}
+  .layout{transition:grid-template-columns .2s}
+  .layout.toc-collapsed{grid-template-columns:3rem minmax(0,1fr)}
+  .layout.toc-collapsed #toc,.layout.toc-collapsed .nav-head h2,.layout.toc-collapsed .toc-label{display:none}
+  .layout.toc-collapsed .toc-toggle svg{transform:rotate(180deg)}
+  .layout.toc-collapsed nav{overflow:visible}
   @media (max-width:860px){
-    .layout{grid-template-columns:1fr; gap:0}
-    nav{position:static; max-height:none; padding:1.5rem 0 0; border-bottom:1px solid var(--line)}
+    .layout,.layout.toc-collapsed{grid-template-columns:minmax(0,1fr); gap:0}
+    nav,.layout.toc-collapsed nav{position:sticky; top:0; z-index:30; max-height:none; overflow:visible; padding:.6rem 3rem .6rem 0;
+      background:var(--bg); border-bottom:1px solid var(--line)}
+    .nav-head{margin-bottom:0}
+    .layout:not(.toc-collapsed) .nav-head{margin-bottom:.5rem}
+    #toc{max-height:60vh; overflow-y:auto; overscroll-behavior:contain}
+    .layout.toc-collapsed .nav-head h2{display:block}
+    .layout.toc-collapsed .toc-label{display:inline}
+    .layout.toc-collapsed .toc-toggle svg{transform:rotate(-90deg)}
+    .layout:not(.toc-collapsed) .toc-toggle svg{transform:rotate(90deg)}
+    nav a{padding:.4rem .5rem}
     main{padding-top:1.5rem}
-    h1{font-size:1.8rem}
+    h1{font-size:1.7rem}
+    h2{font-size:1.45rem; margin-top:2.4rem}
+    h3{font-size:1.2rem}
+    body{font-size:16px}
+    p{text-align:left; hyphens:auto}
+    .intro{text-align:left}
+    .formula,.board{padding:.4rem .6rem; margin:1rem 0}
+    .katex-display{font-size:.92em}
+    table.ratings th,table.ratings td{padding:.4rem .6rem; font-size:.9rem}
+    table.cmp{font-size:.85rem} table.cmp th,table.cmp td{padding:.4rem .4rem}
+    .mat-eq{gap:.5rem} .mat-op{font-size:1.2rem}
+    table.mat-t td{padding:.25rem .4rem; font-size:.85rem}
+    figure.video figcaption{font-size:.85rem}
+    details pre{font-size:.75rem}
   }
+
+  .formula,.board{background-repeat:no-repeat}
+  @media (max-width:860px){
+    .formula{background:
+      linear-gradient(to right,var(--card) 30%,transparent) left center/2rem 100% local,
+      linear-gradient(to left,var(--card) 30%,transparent) right center/2rem 100% local,
+      radial-gradient(farthest-side at 0 50%,rgba(128,128,128,.4),transparent) left center/.7rem 100% scroll,
+      radial-gradient(farthest-side at 100% 50%,rgba(128,128,128,.4),transparent) right center/.7rem 100% scroll;
+      background-repeat:no-repeat; background-color:var(--card)}
+    .board{background:
+      linear-gradient(to right,var(--board) 30%,transparent) left center/2rem 100% local,
+      linear-gradient(to left,var(--board) 30%,transparent) right center/2rem 100% local,
+      radial-gradient(farthest-side at 0 50%,rgba(255,255,255,.35),transparent) left center/.7rem 100% scroll,
+      radial-gradient(farthest-side at 100% 50%,rgba(255,255,255,.35),transparent) right center/.7rem 100% scroll;
+      background-repeat:no-repeat; background-color:var(--board)}
+    .mat-eq{flex-direction:column}
+  }
+  @media (max-width:400px){ .katex-display{font-size:.86em} }
 </style>
 </head>
 <body>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Alternar entre modo claro e escuro" title="Alternar tema">
+  <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+</button>
 <div class="layout">
 
 <nav aria-label="Sumário">
-  <h2>Sumário</h2>
+  <div class="nav-head">
+    <h2>Sumário</h2>
+    <button class="toc-toggle" id="toc-toggle" type="button" aria-expanded="true" aria-controls="toc" title="Recolher ou expandir o sumário">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      <span class="toc-label">Sumário</span>
+    </button>
+  </div>
+  <div id="toc">
   <ol>
     <li><a href="#popularidade">Algoritmos Baseados em Popularidade</a></li>
     <li><a href="#colaborativa">Filtragem Colaborativa</a>
@@ -131,6 +208,7 @@
     <li><a href="#rnn">Redes Neurais Recorrentes (RNN e RvNN)</a></li>
     <li><a href="#transe">Translating Embeddings (TransE)</a></li>
   </ol>
+  </div>
 </nav>
 
 <main>
@@ -412,21 +490,21 @@
 
   <p>A saída adotada nos trabalhos seguintes foi modelar diretamente só as notas observadas. Funk resumiu a ideia dizendo que, ao olhar apenas o erro nas notas conhecidas, podemos simplesmente ignorar o erro nas bilhões de células vazias <sup class="ref"><a href="#fonte-2">[2]</a></sup>. Os vetores \(p_u\) e \(q_i\) deixam de ser calculados por uma decomposição e passam a ser <strong>aprendidos</strong>, minimizando o erro quadrado sobre as notas conhecidas:</p>
 
-  <div class="formula">$$\min_{p_{\ast},\,q_{\ast}} \sum_{(u,i)\in\kappa} \left(r_{ui} - q_i^{\top} p_u\right)^2 + \lambda\left(\lVert q_i \rVert^2 + \lVert p_u \rVert^2\right)$$</div>
+  <div class="formula">$$\begin{aligned}\min_{p_{\ast},\,q_{\ast}}\; & \sum_{(u,i)\in\kappa} \left(r_{ui} - q_i^{\top} p_u\right)^2 \\ & + \lambda\left(\lVert q_i \rVert^2 + \lVert p_u \rVert^2\right)\end{aligned}$$</div>
 
   <p>\(\kappa\) é o conjunto de pares \((u,i)\) cuja nota \(r_{ui}\) é conhecida, ou seja, o conjunto de treino. O primeiro termo mede o quanto o modelo erra as notas que já vimos. O segundo termo, controlado por \(\lambda\), penaliza vetores de módulo grande. Sem ele, o modelo teria liberdade de sobra para decorar as poucas notas observadas, e a generalização para as notas desconhecidas pioraria. O valor de \(\lambda\) costuma ser escolhido por validação cruzada <sup class="ref"><a href="#fonte-1">[1]</a></sup>.</p>
 
   <p>Para minimizar essa função, Funk popularizou o <strong>gradiente descendente estocástico</strong> (SGD). O algoritmo percorre as notas do treino e, para cada uma, calcula o erro de previsão \(e_{ui} = r_{ui} - q_i^{\top} p_u\) e move os dois vetores na direção oposta ao gradiente <sup class="ref"><a href="#fonte-1">[1]</a></sup>:</p>
 
-  <div class="formula">$$q_i \leftarrow q_i + \gamma\left(e_{ui}\, p_u - \lambda\, q_i\right) \qquad p_u \leftarrow p_u + \gamma\left(e_{ui}\, q_i - \lambda\, p_u\right)$$</div>
+  <div class="formula">$$\begin{aligned} q_i &\leftarrow q_i + \gamma\left(e_{ui}\, p_u - \lambda\, q_i\right) \\ p_u &\leftarrow p_u + \gamma\left(e_{ui}\, q_i - \lambda\, p_u\right) \end{aligned}$$</div>
 
   <p>\(\gamma\) é a taxa de aprendizado, que controla o tamanho do passo. Em palavras: se o modelo previu uma nota menor que a real (\(e_{ui} > 0\)), o vetor do usuário anda um pouco em direção ao vetor do item e vice-versa, de modo que o produto interno aumente. O termo \(-\lambda\) puxa os vetores de volta para a origem. Vamos ver um passo completo com a nossa matriz. Considere a nota 5 que a Alice deu ao Filme A, com \(p_{Alice} = (1;\, 0{,}5)\) e \(q_A = (0{,}5;\, 1)\) como valores iniciais, \(\gamma = 0{,}05\) e \(\lambda = 0{,}02\).</p>
 
   <div class="board">
-    $$\hat{r} = 1\cdot 0{,}5 + 0{,}5\cdot 1 = 1{,}0 \quad\Rightarrow\quad e = 5 - 1{,}0 = 4{,}0$$
-    $$p_{Alice} \leftarrow \begin{pmatrix}1\\0{,}5\end{pmatrix} + 0{,}05\left(4\begin{pmatrix}0{,}5\\1\end{pmatrix} - 0{,}02\begin{pmatrix}1\\0{,}5\end{pmatrix}\right) = \begin{pmatrix}1{,}099\\0{,}6995\end{pmatrix}$$
-    $$q_A \leftarrow \begin{pmatrix}0{,}5\\1\end{pmatrix} + 0{,}05\left(4\begin{pmatrix}1\\0{,}5\end{pmatrix} - 0{,}02\begin{pmatrix}0{,}5\\1\end{pmatrix}\right) = \begin{pmatrix}0{,}6995\\1{,}099\end{pmatrix}$$
-    $$\hat{r}_{novo} = 1{,}099\cdot 0{,}6995 + 0{,}6995\cdot 1{,}099 \approx 1{,}54 \quad\Rightarrow\quad e \approx 3{,}46$$
+    $$\begin{aligned}\hat{r} &= 1\cdot 0{,}5 + 0{,}5\cdot 1 = 1{,}0 \\ e &= 5 - 1{,}0 = 4{,}0\end{aligned}$$
+    $$\begin{aligned}p_{Alice} &\leftarrow \begin{pmatrix}1\\0{,}5\end{pmatrix} \\ &\quad + 0{,}05\left(4\begin{pmatrix}0{,}5\\1\end{pmatrix} - 0{,}02\begin{pmatrix}1\\0{,}5\end{pmatrix}\right) \\ &= \begin{pmatrix}1{,}099\\0{,}6995\end{pmatrix}\end{aligned}$$
+    $$\begin{aligned}q_A &\leftarrow \begin{pmatrix}0{,}5\\1\end{pmatrix} \\ &\quad + 0{,}05\left(4\begin{pmatrix}1\\0{,}5\end{pmatrix} - 0{,}02\begin{pmatrix}0{,}5\\1\end{pmatrix}\right) \\ &= \begin{pmatrix}0{,}6995\\1{,}099\end{pmatrix}\end{aligned}$$
+    $$\begin{aligned}\hat{r}_{novo} &= 1{,}099\cdot 0{,}6995 + 0{,}6995\cdot 1{,}099 \\ &\approx 1{,}54 \\ e &\approx 3{,}46\end{aligned}$$
   </div>
 
   <p>Os dois vetores usam os valores <em>antigos</em> um do outro no cálculo, e um único passo já reduziu o erro de 4,0 para 3,46. O treinamento completo repete esse passo para todas as notas conhecidas, várias vezes (cada volta pelo conjunto de treino é uma <em>época</em>).</p>
@@ -440,7 +518,7 @@
 
   <p>Existe uma ideia que já apareceu na seção de filtragem colaborativa: um 5 não significa a mesma coisa para todo mundo. O Pearson resolvia isso subtraindo a média de cada usuário. Nos modelos fatoriais, o equivalente é separar da nota a parte que é só tendência do usuário ou do item, e deixar o produto interno explicar apenas a interação de verdade. Koren, Bell e Volinsky chamam essa parte de <em>vieses</em> (ou <em>intercepts</em>) e dão uma aproximação de primeira ordem <sup class="ref"><a href="#fonte-1">[1]</a></sup>:</p>
 
-  <div class="formula">$$b_{ui} = \mu + b_i + b_u \qquad\qquad \hat{r}_{ui} = \mu + b_i + b_u + q_i^{\top} p_u$$</div>
+  <div class="formula">$$\begin{aligned} b_{ui} &= \mu + b_i + b_u \\ \hat{r}_{ui} &= \mu + b_i + b_u + q_i^{\top} p_u \end{aligned}$$</div>
 
   <p>\(\mu\) é a média global das notas, \(b_i\) é o quanto o item costuma ficar acima ou abaixo da média e \(b_u\) é o mesmo para o usuário. A nota fica decomposta em quatro componentes: média global, viés do item, viés do usuário e interação usuário-item. O exemplo do artigo ajuda a fixar: se a média geral é 3,7 estrelas, Titanic costuma receber 0,5 acima da média e Joe é um usuário crítico que dá 0,3 abaixo, a estimativa de base para a nota de Joe a Titanic é 3,7 + 0,5 − 0,3 = 3,9. Os vieses entram no treino como parâmetros adicionais: a função de custo ganha \(b_u^2 + b_i^2\) dentro do termo de regularização, e o SGD ganha as atualizações \(b_u \leftarrow b_u + \gamma(e_{ui} - \lambda b_u)\) e \(b_i \leftarrow b_i + \gamma(e_{ui} - \lambda b_i)\) <sup class="ref"><a href="#fonte-4">[4]</a></sup>.</p>
 
@@ -452,7 +530,8 @@
 
   <p>O artigo que formalizou esse caso, de Hu, Koren e Volinsky, trata a interação como uma preferência binária \(p_{ui}\) (1 se houve interação, 0 caso contrário) ponderada por uma confiança \(c_{ui} = 1 + \alpha\, r_{ui}\), em que \(r_{ui}\) é, por exemplo, o número de vezes que o usuário consumiu o item. A função de custo passa a somar sobre <em>todos</em> os pares, e cada fator de usuário tem solução fechada <sup class="ref"><a href="#fonte-3">[3]</a></sup>:</p>
 
-  <div class="formula">$$\min_{x_{\ast},\,y_{\ast}} \sum_{u,i} c_{ui}\left(p_{ui} - x_u^{\top} y_i\right)^2 + \lambda\left(\sum_u \lVert x_u \rVert^2 + \sum_i \lVert y_i \rVert^2\right) \qquad x_u = \left(Y^{\top} C^u Y + \lambda I\right)^{-1} Y^{\top} C^u\, p(u)$$</div>
+  <div class="formula">$$\begin{aligned}\min_{x_{\ast},\,y_{\ast}}\; & \sum_{u,i} c_{ui}\left(p_{ui} - x_u^{\top} y_i\right)^2 \\ & + \lambda\left(\sum_u \lVert x_u \rVert^2 + \sum_i \lVert y_i \rVert^2\right)\end{aligned}$$
+  <div class="formula">$$x_u = \left(Y^{\top} C^u Y + \lambda I\right)^{-1} Y^{\top} C^u\, p(u)$$</div>
 
   <p>Nessa notação do artigo, \(x_u\) e \(y_i\) são os fatores de usuário e de item, \(Y\) é a matriz com todos os \(y_i\) nas linhas, \(C^u\) é a matriz diagonal com as confianças \(c_{ui}\) do usuário \(u\), e \(p(u)\) é o vetor de preferências dele. O custo desse cálculo seria alto, mas o artigo usa o fato de que \(Y^{\top} C^u Y = Y^{\top} Y + Y^{\top}(C^u - I)Y\). O primeiro termo é igual para todos os usuários e é calculado uma vez, e o segundo só envolve os itens com os quais aquele usuário interagiu, que são poucos <sup class="ref"><a href="#fonte-3">[3]</a></sup>.</p>
 
@@ -514,7 +593,7 @@ P[u]+=g*(err*Q[i]-lam*P[u]);Q[i]+=g*(err*pu-lam*Q[i]);print(P[u],Q[i],P[u]@Q[i],
 
   <p>Uma das vantagens apontadas para a fatoração é a flexibilidade: o mesmo arcabouço de aprendizado aceita informações adicionais. Com feedback implícito, o usuário também é descrito pelos itens com os quais interagiu. Seja \(N(u)\) o conjunto desses itens e \(x_j\) um novo conjunto de fatores por item. A previsão fica (na forma simplificada da equação 6 de Koren, Bell e Volinsky, sem atributos demográficos) <sup class="ref"><a href="#fonte-1">[1]</a></sup>:</p>
 
-  <div class="formula">$$\hat{r}_{ui} = \mu + b_i + b_u + q_i^{\top}\left(p_u + |N(u)|^{-1/2} \sum_{j \in N(u)} x_j\right)$$</div>
+  <div class="formula">$$\begin{aligned}\hat{r}_{ui} &= \mu + b_i + b_u \\ &\quad + q_i^{\top}\bigl(p_u + |N(u)|^{-1/2} \textstyle\sum_{j \in N(u)} x_j\bigr)\end{aligned}$$</div>
 
   <p>Essa variante é conhecida como <strong>SVD++</strong> <sup class="ref"><a href="#fonte-4">[4]</a></sup>. Os mesmos autores mostram ainda a dinâmica temporal, em que \(b_i\), \(b_u\) e \(p_u\) passam a depender do tempo, \(b_i(t)\), \(b_u(t)\) e \(p_u(t)\), porque a popularidade dos itens e o gosto dos usuários mudam. Os vetores \(q_i\) ficam estáticos, já que os itens, ao contrário das pessoas, não mudam. E, quando algumas observações merecem mais peso que outras, cada termo do erro é multiplicado por uma confiança \(c_{ui}\) <sup class="ref"><a href="#fonte-1">[1]</a></sup>.</p>
 
@@ -572,6 +651,32 @@ P[u]+=g*(err*Q[i]-lam*P[u]);Q[i]+=g*(err*pu-lam*Q[i]);print(P[u],Q[i],P[u]@Q[i],
 </main>
 </div>
 
+<script>
+  // Tema claro/escuro e sumário recolhível (preferências guardadas se o navegador permitir)
+  (function(){
+    var root=document.documentElement;
+    function save(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+    function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
+    var tbtn=document.getElementById('theme-toggle');
+    if(tbtn) tbtn.addEventListener('click',function(){
+      var next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+      root.setAttribute('data-theme',next); save('theme',next);
+    });
+    var layout=document.querySelector('.layout'),btn=document.getElementById('toc-toggle');
+    var mobile=window.matchMedia('(max-width:860px)');
+    function setToc(collapsed,persist){
+      layout.classList.toggle('toc-collapsed',collapsed);
+      btn.setAttribute('aria-expanded',String(!collapsed));
+      if(persist) save('toc',collapsed?'collapsed':'open');
+    }
+    var stored=load('toc');
+    setToc(stored?stored==='collapsed':mobile.matches,false);
+    btn.addEventListener('click',function(){setToc(!layout.classList.contains('toc-collapsed'),true)});
+    document.querySelectorAll('#toc a').forEach(function(a){
+      a.addEventListener('click',function(){ if(mobile.matches) setToc(true,false); });
+    });
+  })();
+</script>
 <script>
   // Destaca no sumário a seção visível
   (function(){
