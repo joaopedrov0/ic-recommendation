@@ -48,8 +48,7 @@ document.documentElement.setAttribute('data-theme',t)})();
   h4{font-size:1.1rem; margin:1.6rem 0 .3rem; color:var(--muted)}
   .lead{color:var(--muted); font-style:italic; margin:0 0 1rem}
   p{margin:.8rem 0; text-align:justify; hyphens:auto}
-  .formula{background:var(--card); border:1px solid var(--line); border-radius:8px;
-           padding:.6rem 1rem; margin:1.2rem 0; overflow-x:auto}
+  .formula{background:transparent; border:0; padding:.4rem 0; margin:1.2rem 0; overflow-x:auto}
   .formula figcaption{text-align:center; font-size:.9rem; color:var(--muted); margin-top:.2rem}
   .katex-display{margin:.6em 0}
   .board{background:var(--board); color:var(--boardfg); border-radius:8px; padding:.6rem 1rem;
@@ -103,9 +102,10 @@ document.documentElement.setAttribute('data-theme',t)})();
   /* sumário recolhível */
   .nav-head{display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.75rem}
   .nav-head h2{margin:0}
-  .toc-toggle{display:inline-flex; align-items:center; gap:.35rem; border:1px solid var(--line); background:transparent; color:var(--muted);
-    border-radius:6px; padding:.2rem .5rem; font:inherit; font-size:12px; cursor:pointer}
-  .toc-toggle:hover,.toc-toggle:focus-visible{color:var(--fg); background:var(--card)}
+  .toc-toggle{display:inline-flex; align-items:center; gap:.35rem; border:0; background:transparent; color:var(--muted);
+    border-radius:6px; padding:.2rem .35rem; font:inherit; font-size:12px; cursor:pointer}
+  .toc-toggle:hover{color:var(--fg)}
+  .toc-toggle:focus-visible{color:var(--fg); outline:2px solid var(--accent); outline-offset:2px}
   .toc-toggle svg{width:.9rem; height:.9rem; transition:transform .2s}
   .layout{transition:grid-template-columns .2s}
   .layout.toc-collapsed{grid-template-columns:3rem minmax(0,1fr)}
@@ -131,7 +131,8 @@ document.documentElement.setAttribute('data-theme',t)})();
     body{font-size:16px}
     p{text-align:left; hyphens:auto}
     .intro{text-align:left}
-    .formula,.board{padding:.4rem .6rem; margin:1rem 0}
+    .formula{padding:.3rem 0; margin:1rem 0}
+    .board{padding:.4rem .6rem; margin:1rem 0}
     .katex-display{font-size:.92em}
     table.ratings th,table.ratings td{padding:.4rem .6rem; font-size:.9rem}
     table.cmp{font-size:.85rem} table.cmp th,table.cmp td{padding:.4rem .4rem}
@@ -144,11 +145,11 @@ document.documentElement.setAttribute('data-theme',t)})();
   .formula,.board{background-repeat:no-repeat}
   @media (max-width:860px){
     .formula{background:
-      linear-gradient(to right,var(--card) 30%,transparent) left center/2rem 100% local,
-      linear-gradient(to left,var(--card) 30%,transparent) right center/2rem 100% local,
+      linear-gradient(to right,var(--bg) 30%,transparent) left center/2rem 100% local,
+      linear-gradient(to left,var(--bg) 30%,transparent) right center/2rem 100% local,
       radial-gradient(farthest-side at 0 50%,rgba(128,128,128,.4),transparent) left center/.7rem 100% scroll,
       radial-gradient(farthest-side at 100% 50%,rgba(128,128,128,.4),transparent) right center/.7rem 100% scroll;
-      background-repeat:no-repeat; background-color:var(--card)}
+      background-repeat:no-repeat; background-color:transparent}
     .board{background:
       linear-gradient(to right,var(--board) 30%,transparent) left center/2rem 100% local,
       linear-gradient(to left,var(--board) 30%,transparent) right center/2rem 100% local,
