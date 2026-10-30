@@ -1,0 +1,571 @@
+{
+  "schemaVersion": 1,
+  "id": "f3bfc509-bdf1-453f-995e-598f2eda4c69",
+  "name": "Arquitetura de Recomendação IFVest (Popularidade + IBCF)",
+  "createdAt": "2026-10-30T00:58:17.342Z",
+  "updatedAt": "2026-10-30T00:58:17.342Z",
+  "components": [
+    {
+      "id": "ifvest-frontend",
+      "kind": "client",
+      "name": "IFVest Frontend",
+      "description": "Aplicação web SPA consumida pelos estudantes. Coleta telemetria ética de estudo (tempo de resposta, uso de dicas) e exibe recomendações explicáveis (XAI).",
+      "technology": "React / TypeScript",
+      "tags": [
+        "React 19",
+        "TypeScript",
+        "Vite"
+      ],
+      "layout": {
+        "x": -435.9187643287765,
+        "y": -158.3370110418433,
+        "expanded": true
+      },
+      "details": {
+        "screens": [
+          {
+            "id": "scr_quiz_home",
+            "name": "Home do IFQuiz",
+            "path": "/quiz",
+            "description": "Exibe cards de desempenho, Questões em Alta (Time Decay) e trilhas recomendadas.",
+            "layout": {
+              "x": 40,
+              "y": 40
+            }
+          },
+          {
+            "id": "scr_create_quiz",
+            "name": "Monte seu Quiz",
+            "path": "/quiz/criar",
+            "description": "Permite escolher disciplina, dificuldade calibrada empiricamente (1-5) e modo adaptativo IBCF.",
+            "layout": {
+              "x": 320,
+              "y": 40
+            }
+          },
+          {
+            "id": "scr_quiz_session",
+            "name": "Sessão de Quiz Adaptativo",
+            "path": "/quiz/sessao",
+            "description": "Sessão com 3 vidas (QUIZ_MAX_LIVES=3), cronômetro por questão e botão de dica.",
+            "layout": {
+              "x": 600,
+              "y": 40
+            }
+          },
+          {
+            "id": "scr_mocktests",
+            "name": "Simulados Recomendados",
+            "path": "/simulados",
+            "description": "Lista simulados institucionais e gera simulados personalizados via IBCF + cobertura curricular.",
+            "layout": {
+              "x": 320,
+              "y": 200
+            }
+          }
+        ],
+        "env": [
+          {
+            "key": "VITE_API_BASE_URL",
+            "value": "http://localhost:8000/api/v1",
+            "description": "URL base da API FastAPI"
+          }
+        ],
+        "notes": "Envia response_time_ms e used_hint ao responder questões; apresenta justificativa pedagógica transparente (Open Learner Model).",
+        "navigation": [
+          {
+            "id": "nav_1",
+            "from": "scr_quiz_home",
+            "to": "scr_create_quiz",
+            "label": "Criar quiz adaptativo"
+          },
+          {
+            "id": "nav_2",
+            "from": "scr_create_quiz",
+            "to": "scr_quiz_session",
+            "label": "Iniciar sessão (POST /quiz/start)"
+          },
+          {
+            "id": "nav_3",
+            "from": "scr_quiz_home",
+            "to": "scr_mocktests",
+            "label": "Praticar simulado recomendado"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ifvest-backend-api",
+      "kind": "server",
+      "name": "IFVest Backend API",
+      "description": "Servidor principal da API REST. Expõe rotas de Quiz, Simulados e Recomendações protegidas por Feature Flags e injeta o AdaptiveQuestionChooser.",
+      "technology": "FastAPI / Python 3.12",
+      "tags": [
+        "FastAPI",
+        "SQLAlchemy Async",
+        "Pydantic v2"
+      ],
+      "layout": {
+        "x": 85.74119224685847,
+        "y": 61.32216631559516
+      },
+      "details": {
+        "routes": [
+          {
+            "id": "rt_pop",
+            "method": "GET",
+            "path": "/api/v1/recommendations/questions/popular",
+            "description": "Retorna questões em alta (Time Decay) ou mais desafiadoras (Estimador Bayesiano)."
+          },
+          {
+            "id": "rt_ibcf",
+            "method": "GET",
+            "path": "/api/v1/recommendations/questions/for-me",
+            "description": "Recomenda Top-N questões personalizadas via IBCF calibradas na Zona de Desenvolvimento Proximal (~85% acerto esperado)."
+          },
+          {
+            "id": "rt_quiz_next",
+            "method": "GET",
+            "path": "/api/v1/quiz/current-question",
+            "description": "Sorteia ou seleciona a próxima questão do quiz usando AdaptiveQuestionChooser."
+          },
+          {
+            "id": "rt_quiz_ans",
+            "method": "POST",
+            "path": "/api/v1/quiz/answer",
+            "description": "Valida resposta da questão no quiz e grava response_time_ms e used_hint."
+          },
+          {
+            "id": "rt_mock_rec",
+            "method": "POST",
+            "path": "/api/v1/mocktests/recommended",
+            "description": "Gera simulado personalizado combinando IBCF, Popularidade Bayesiana e diversidade de tópicos."
+          }
+        ],
+        "env": [
+          {
+            "key": "FEATURE_MODULE_RECOMMENDATIONS",
+            "value": "true",
+            "description": "Feature flag do módulo de recomendação"
+          },
+          {
+            "key": "REC_MIN_SUPPORT_THRESHOLD",
+            "value": "5",
+            "description": "Suporte mínimo para estimador bayesiano (m) e IBCF (gamma)"
+          }
+        ],
+        "notes": "Injeta QuestionChooser (Protocol) em get_current_quiz_question sem acoplar a rota ao algoritmo."
+      }
+    },
+    {
+      "id": "motor-popularidade-ibcf",
+      "kind": "worker",
+      "name": "Motor Popularidade & IBCF",
+      "description": "Serviço/Worker assíncrono que consolida interações (Quiz + Simulados), calcula Popularidade Bayesiana + Time Decay, calibra dificuldade empírica (1-5) e constrói a matriz esparsa Item-Item do IBCF.",
+      "technology": "Python Async Service / Cron",
+      "tags": [
+        "Popularity",
+        "IBCF",
+        "Adjusted Cosine",
+        "ZPD 85%"
+      ],
+      "layout": {
+        "x": 614.1909437171104,
+        "y": 214.05369148870616,
+        "expanded": true
+      },
+      "details": {
+        "topics": [
+          {
+            "id": "tp_pop_job",
+            "name": "popularity_recommender: Estimador Bayesiano + Time Decay + Calibração de Dificuldade (1-5)"
+          },
+          {
+            "id": "tp_ibcf_job",
+            "name": "ibcf_recommender: Similaridade de Cosseno Ajustada + Top-K Vizinhos + Filtro ZDP"
+          }
+        ],
+        "notes": "Executa em background ou sob demanda com complexidade O(|I|^2) restrita a pares com co-ocorrência >= 2. Aplica k-anonimato (gamma >= 5) na matriz de similaridade."
+      }
+    },
+    {
+      "id": "cache-de-similaridade-e-ranking",
+      "kind": "cache",
+      "name": "Cache de Similaridade e Ranking",
+      "description": "Armazenamento rápido dos vetores Top-K de vizinhança de itens e scores de popularidade para baixa latência (< 5ms) durante sessões de Quiz.",
+      "technology": "In-Memory / Redis Cache",
+      "tags": [
+        "Low Latency",
+        "Top-K Neighbors"
+      ],
+      "layout": {
+        "x": 611.6080906976971,
+        "y": -242.68709681480294
+      }
+    },
+    {
+      "id": "ifvest-database",
+      "kind": "database",
+      "name": "IFVest Database",
+      "description": "Banco de dados relacional com histórico de resoluções (Quiz e Simulados), catálogo taxonômico de questões, denúncias e tabelas materializadas de similaridade/popularidade.",
+      "technology": "PostgreSQL 16",
+      "groupId": "camada-de-dados-postgresql-16",
+      "tags": [
+        "PostgreSQL 16",
+        "Alembic"
+      ],
+      "layout": {
+        "x": 1584.9893535874044,
+        "y": 308.87163122407674,
+        "expanded": true
+      },
+      "details": {
+        "entities": [
+          {
+            "id": "ent_users",
+            "name": "users",
+            "fields": [
+              {
+                "name": "user_id",
+                "type": "SERIAL PK"
+              },
+              {
+                "name": "points",
+                "type": "INT"
+              },
+              {
+                "name": "total_answered",
+                "type": "INT"
+              },
+              {
+                "name": "total_corrects",
+                "type": "INT"
+              }
+            ],
+            "layout": {
+              "x": 40,
+              "y": 40
+            }
+          },
+          {
+            "id": "ent_questions",
+            "name": "multiple_choice_questions",
+            "fields": [
+              {
+                "name": "question_id",
+                "type": "SERIAL PK"
+              },
+              {
+                "name": "exam_board",
+                "type": "VARCHAR(100)"
+              },
+              {
+                "name": "year",
+                "type": "INT"
+              },
+              {
+                "name": "difficulty",
+                "type": "INT (Calibrada 1-5)"
+              }
+            ],
+            "layout": {
+              "x": 340,
+              "y": 40
+            }
+          },
+          {
+            "id": "ent_q_hist",
+            "name": "question_history",
+            "fields": [
+              {
+                "name": "question_history_id",
+                "type": "SERIAL PK"
+              },
+              {
+                "name": "user_id",
+                "type": "INT FK"
+              },
+              {
+                "name": "question_id",
+                "type": "INT FK"
+              },
+              {
+                "name": "quiz_id",
+                "type": "INT FK NULL"
+              },
+              {
+                "name": "is_correct",
+                "type": "BOOLEAN"
+              },
+              {
+                "name": "response_time_ms",
+                "type": "INT NULL (Novo)"
+              },
+              {
+                "name": "used_hint",
+                "type": "BOOLEAN (Novo)"
+              },
+              {
+                "name": "answered_at",
+                "type": "TIMESTAMP"
+              }
+            ],
+            "layout": {
+              "x": 40,
+              "y": 240
+            }
+          },
+          {
+            "id": "ent_m_ans",
+            "name": "user_mocktest_answers",
+            "fields": [
+              {
+                "name": "user_mocktest_id",
+                "type": "INT PK, FK"
+              },
+              {
+                "name": "question_id",
+                "type": "INT PK, FK"
+              },
+              {
+                "name": "selected_letter",
+                "type": "CHAR(1)"
+              },
+              {
+                "name": "is_correct",
+                "type": "BOOLEAN"
+              },
+              {
+                "name": "response_time_ms",
+                "type": "INT NULL (Novo)"
+              },
+              {
+                "name": "answered_at",
+                "type": "TIMESTAMP (Novo)"
+              }
+            ],
+            "layout": {
+              "x": 340,
+              "y": 240
+            }
+          },
+          {
+            "id": "ent_q_sim",
+            "name": "question_similarities (Nova)",
+            "fields": [
+              {
+                "name": "question_id_a",
+                "type": "INT PK, FK"
+              },
+              {
+                "name": "question_id_b",
+                "type": "INT PK, FK"
+              },
+              {
+                "name": "similarity_score",
+                "type": "FLOAT"
+              },
+              {
+                "name": "common_users",
+                "type": "INT"
+              },
+              {
+                "name": "updated_at",
+                "type": "TIMESTAMP"
+              }
+            ],
+            "layout": {
+              "x": 660,
+              "y": 40
+            }
+          },
+          {
+            "id": "ent_q_stats",
+            "name": "question_popularity_stats (Nova)",
+            "fields": [
+              {
+                "name": "question_id",
+                "type": "INT PK, FK"
+              },
+              {
+                "name": "total_attempts",
+                "type": "INT"
+              },
+              {
+                "name": "bayesian_error_rate",
+                "type": "FLOAT"
+              },
+              {
+                "name": "trending_score",
+                "type": "FLOAT"
+              },
+              {
+                "name": "updated_at",
+                "type": "TIMESTAMP"
+              }
+            ],
+            "layout": {
+              "x": 660,
+              "y": 240
+            }
+          }
+        ],
+        "relations": [
+          {
+            "id": "rel_u_qh",
+            "from": "ent_users",
+            "to": "ent_q_hist",
+            "cardinality": "1:N",
+            "label": "responde no quiz"
+          },
+          {
+            "id": "rel_q_qh",
+            "from": "ent_questions",
+            "to": "ent_q_hist",
+            "cardinality": "1:N",
+            "label": "avaliada em"
+          },
+          {
+            "id": "rel_q_ma",
+            "from": "ent_questions",
+            "to": "ent_m_ans",
+            "cardinality": "1:N",
+            "label": "respondida em simulado"
+          },
+          {
+            "id": "rel_q_sim",
+            "from": "ent_questions",
+            "to": "ent_q_sim",
+            "cardinality": "1:N",
+            "label": "vizinhança IBCF"
+          },
+          {
+            "id": "rel_q_stats",
+            "from": "ent_questions",
+            "to": "ent_q_stats",
+            "cardinality": "1:1",
+            "label": "métricas de popularidade"
+          }
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "ifvest-frontend-ifvest-backend-api",
+      "source": "ifvest-frontend",
+      "target": "ifvest-backend-api",
+      "protocol": "http",
+      "label": "REST JSON (Quiz, Simulados, Recomendações + Telemetria)",
+      "direction": "two-way"
+    },
+    {
+      "id": "ifvest-backend-api-cache-de-similaridade-e-ranking",
+      "source": "ifvest-backend-api",
+      "target": "cache-de-similaridade-e-ranking",
+      "protocol": "ipc",
+      "label": "Consulta Top-K Vizinhos IBCF e Rankings (<5ms)",
+      "direction": "two-way"
+    },
+    {
+      "id": "ifvest-backend-api-ifvest-database",
+      "source": "ifvest-backend-api",
+      "target": "ifvest-database",
+      "protocol": "sql",
+      "label": "Grava respostas e lê questões/histórico (AsyncPG)",
+      "direction": "two-way"
+    },
+    {
+      "id": "ifvest-backend-api-motor-popularidade-ibcf",
+      "source": "ifvest-backend-api",
+      "target": "motor-popularidade-ibcf",
+      "protocol": "event",
+      "label": "Dispara atualização incremental/batch de matrizes",
+      "direction": "one-way",
+      "async": true
+    },
+    {
+      "id": "motor-popularidade-ibcf-ifvest-database",
+      "source": "motor-popularidade-ibcf",
+      "target": "ifvest-database",
+      "protocol": "sql",
+      "label": "Lê interações agregadas e persiste similaridades/popularidade",
+      "direction": "two-way"
+    },
+    {
+      "id": "motor-popularidade-ibcf-cache-de-similaridade-e-ranking",
+      "source": "motor-popularidade-ibcf",
+      "target": "cache-de-similaridade-e-ranking",
+      "protocol": "ipc",
+      "label": "Atualiza cache de scores e matriz S(i,j)",
+      "direction": "one-way"
+    }
+  ],
+  "groups": [
+    {
+      "id": "camada-de-apresentacao-frontend",
+      "name": "Camada de Apresentação (Frontend)",
+      "description": "Interface do estudante com feedback pedagógico transparente e coleta ética de interações.",
+      "layout": {
+        "x": -41.80823755286363,
+        "y": -280.8292573846357,
+        "w": 248,
+        "h": 130
+      }
+    },
+    {
+      "id": "camada-de-aplicacao-e-recomendacao-backend",
+      "name": "Camada de Aplicação e Recomendação (Backend)",
+      "description": "API FastAPI, Serviços de Recomendação (Popularidade + IBCF) e Cache de baixa latência.",
+      "layout": {
+        "x": 697.6062393760957,
+        "y": -508.46231327071035,
+        "w": 698,
+        "h": 258
+      }
+    },
+    {
+      "id": "camada-de-dados-postgresql-16",
+      "name": "Camada de Dados (PostgreSQL 16)",
+      "description": "Persistência relacional unificando histórico de quizzes, simulados e matrizes pré-computadas.",
+      "layout": {
+        "x": 1560.9893535874044,
+        "y": 181.87163122407674,
+        "w": 248,
+        "h": 209
+      }
+    }
+  ],
+  "notes": [
+    {
+      "id": "nota",
+      "text": "Popularidade: Combina Estimador Bayesiano S_bayes(i) = [n_i/(n_i+m)]*p_i + [m/(n_i+m)]*mu (calibração de dificuldade 1-5) e Decaimento Temporal Exponencial exp(-lambda * delta_t). Penaliza questões com denúncias pendentes em question_reports.",
+      "layout": {
+        "x": -190.32099312464402,
+        "y": 292.59642457611255,
+        "w": 291,
+        "h": 193
+      }
+    },
+    {
+      "id": "nota-2",
+      "text": "IBCF Educacional: Matriz Usuário-Questão R(u,i) baseada em vulnerabilidade pedagógica (erro, tempo, dica). Similaridade de Cosseno Ajustada (descontando média do aluno) + Significance Weighting min(1, |U_ij|/gamma).",
+      "layout": {
+        "x": 149.2776235007613,
+        "y": 300.5696656844729,
+        "w": 292,
+        "h": 184
+      }
+    },
+    {
+      "id": "nota-3",
+      "text": "Critérios Pedagógicos e Éticos: Seleção calibrada na Zona de Desenvolvimento Proximal / Regra dos 85% (evita perda precoce das 3 vidas do IFQuiz), diversidade intra-lista (cobertura de tópicos) e conformidade LGPD (minimização de dados e k-anonimato).",
+      "layout": {
+        "x": 462.89910549318586,
+        "y": 440.3678548769537,
+        "w": 386,
+        "h": 181
+      }
+    }
+  ]
+}

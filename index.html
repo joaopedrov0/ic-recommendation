@@ -70,6 +70,9 @@ document.documentElement.setAttribute('data-theme',t)})();
   figure.video{margin:1.4rem 0}
   figure.video video{width:100%; aspect-ratio:16/9; border-radius:8px; border:1px solid var(--line); background:#000; display:block}
   figure.video figcaption{font-size:.9rem; color:var(--muted); margin-top:.4rem; text-align:center}
+  figure.diagram{margin:1.6rem 0; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:1rem .8rem .75rem; overflow-x:auto}
+  figure.diagram svg{width:100%; height:auto; display:block; margin:0 auto; font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+  figure.diagram figcaption{font-size:.9rem; color:var(--muted); margin-top:.6rem; text-align:center; font-family:system-ui,sans-serif}
   table.ratings td.imp{background:rgba(250,204,21,.28); color:#fde68a}
   table.ratings td.pred{background:rgba(45,212,191,.28); color:#99f6e4; font-weight:600}
   table.cmp{border-collapse:collapse; margin:1.2rem auto; font:.95rem system-ui,sans-serif; width:100%}
@@ -204,10 +207,25 @@ document.documentElement.setAttribute('data-theme',t)})();
         <li><a href="#fontes-svd">Fontes</a></li>
       </ol>
     </li>
-    <li><a href="#tfidf">Modelagem Linguística (TF-IDF)</a></li>
-    <li><a href="#cbr">Raciocínio Baseado em Conhecimento (CBR)</a></li>
-    <li><a href="#rnn">Redes Neurais Recorrentes (RNN e RvNN)</a></li>
-    <li><a href="#transe">Translating Embeddings (TransE)</a></li>
+    <li><a href="#conhecimento">Sistemas Baseados em Conhecimento</a></li>
+    <li><a href="#grafos">Grafos de Conhecimento</a></li>
+    <li><a href="#ifvest">Estudo de Caso: IFVest</a>
+      <ol>
+        <li><a href="#ifvest-taxonomia">Taxonomia Unificada e Diagnóstico</a></li>
+        <li><a href="#ifvest-dados">Dados Existentes vs. Novos Dados</a></li>
+        <li><a href="#ifvest-pop">Popularidade Bayesiana e Time Decay</a></li>
+        <li><a href="#ifvest-ibcf">IBCF Multi-Nível (Questões e Tópicos)</a></li>
+        <li><a href="#ifvest-arquitetura">Arquitetura de Integração</a></li>
+      </ol>
+    </li>
+    <li><a href="#criterios">Critérios Pedagógicos, Técnicos e Éticos</a>
+      <ol>
+        <li><a href="#crit-pedagogicos">Frente Pedagógica (Erros, ZDP e Retenção)</a></li>
+        <li><a href="#crit-tecnicos">Frente Técnica (Viés, Drift e Avaliação)</a></li>
+        <li><a href="#crit-eticos">Frente Ética e Legal (LGPD)</a></li>
+        <li><a href="#fontes-ifvest">Fontes</a></li>
+      </ol>
+    </li>
   </ol>
   </div>
 </nav>
@@ -215,36 +233,53 @@ document.documentElement.setAttribute('data-theme',t)})();
 <main>
 <header>
   <h1>Técnicas de Sistemas de Recomendação</h1>
-  <p class="subtitle">Base bruta de dados</p>
-  <p class="intro">O objetivo deste documento é organizar todas as descobertas feitas durante o estudo de diferentes técnicas utilizadas em sistemas de recomendação, a fim de compreender seu funcionamento matemático, suas prioridades e seus dados de entradas.</p>
+  <p class="subtitle">Notas de estudo da iniciação científica</p>
+  <p class="intro">O objetivo deste documento é organizar todas as descobertas feitas durante o estudo de diferentes técnicas utilizadas em sistemas de recomendação, a fim de compreender seu funcionamento matemático, suas prioridades e seus dados de entrada. As técnicas aparecem em ordem de complexidade, e cada uma parte de um problema deixado pela anterior. A partir da filtragem colaborativa, todas são aplicadas à mesma matriz pequena de notas, para que os resultados possam ser comparados lado a lado.</p>
 </header>
 
 <!-- ============ POPULARIDADE ============ -->
 <section id="popularidade">
   <h2>Algoritmos Baseados em Popularidade</h2>
-  <p class="lead">Probabilidade empírica univariada e aplicação de funções de decaimento exponencial temporal (Time Decay).</p>
+  <p class="lead">Recomendar o que mais gente consumiu, dando mais peso ao que foi consumido recentemente.</p>
 
   <p>A primeira e mais simples abordagem para sistemas de recomendação analisada foram os algoritmos baseados em popularidade. Esses algoritmos partem da premissa que se a maioria gosta de um certo material, se trata de um conteúdo de qualidade e que se encaixa como recomendação ideal para qualquer usuário. Em outras palavras, a aceitação de um item recomendado é mais provável se sua adoção global prévia for alta.</p>
 
   <div class="formula">$$S(i) = \frac{N_i}{\sum_{j \in I} N_j}$$</div>
 
-  <p>\(S(i)\) é o grau de recomendação de um item. \(N_i\) é a frequência absoluta de interações que um item recebeu. \(I\) é o universo de itens. Ou seja, o grau de “relevância” para recomendação de um dado item é determinado pela razão de interações desse item e o total de interações em todos os itens restantes no sistema.</p>
+  <p>\(S(i)\) é o grau de recomendação de um item. \(N_i\) é a frequência absoluta de interações que um item recebeu. \(I\) é o universo de itens. Ou seja, o grau de “relevância” para recomendação de um dado item é a fração que ele representa do total de interações do sistema, contando as dele próprio. Por isso os valores de todos os itens somam 1, e \(S(i)\) pode ser lido como a probabilidade de que uma interação qualquer, sorteada ao acaso, tenha sido com o item \(i\).</p>
 
-  <p>Entretanto, esse modelo tem um problema já conhecido. Conforme o sistema é utilizado, itens mais antigos acumulam interações de modo que se tornam praticamente imbatíveis em relação a itens novos. Um excelente material sequer tem chance de ser recomendado se tiver sido lançado recentemente, afinal os materiais que estão acumulando interações a dias, naturalmente, terão mais interações do que materiais mais recentes, independente da sua relevância.</p>
+  <p>Entretanto, esse modelo tem um problema já conhecido. Conforme o sistema é utilizado, itens mais antigos acumulam interações de modo que se tornam praticamente imbatíveis em relação a itens novos. Um excelente material sequer tem chance de ser recomendado se tiver sido lançado recentemente, afinal os materiais que estão acumulando interações há dias, naturalmente, terão mais interações do que materiais mais recentes, independente da sua relevância.</p>
 
   <p>Uma abordagem para resolver esse problema é o Decaimento Exponencial (<em>Time Decay</em>), que introduz uma decrescente relevância a interações antigas, de modo a valorizar mais as interações recentes. Agora, um material antigo será colocado acima de um material mais recente não se tiver um total de interações superior, mas sim se <strong>manteve sua relevância</strong> ao longo do tempo, e ainda é consistentemente acessado pelos usuários.</p>
 
   <div class="formula">$$S_t(i) = \sum_{k=1}^{N_i} e^{-\lambda (t - t_k)}$$</div>
 
-  <p>Como você pode ver, agora o somatório não soma a quantidade bruta de interações, mas sim a relevância das interações em relação ao tempo. Interações mais recentes somam um valor maior, interações históricas perdem relevância ao longo do tempo.</p>
+  <p>\(t\) é o instante atual, \(t_k\) é o instante em que aconteceu a \(k\)-ésima interação com o item \(i\), e \(\lambda &gt; 0\) é a taxa de decaimento. Como você pode ver, agora o somatório não soma a quantidade bruta de interações, mas sim a relevância das interações em relação ao tempo. Uma interação que acabou de acontecer (\(t - t_k = 0\)) soma exatamente 1, e cada interação mais antiga soma uma fração de 1 que encolhe com a idade.</p>
+
+  <p>O valor de \(\lambda\) fica mais fácil de escolher quando pensamos em <strong>meia-vida</strong>: o tempo que uma interação leva para passar a valer metade. As duas coisas se relacionam por \(t_{1/2} = \ln 2 / \lambda\) <sup class="ref"><a href="#fonte-pop-1">[1]</a></sup>, o que permite reescrever o peso de cada interação como \(e^{-\lambda(t - t_k)} = (1/2)^{(t - t_k)/t_{1/2}}\): a cada meia-vida, o peso cai pela metade. Vamos supor uma meia-vida de 7 dias, ou seja, \(\lambda = \ln 2 / 7 \approx 0{,}099\) por dia. O Filme X recebeu 10 interações, todas há 28 dias. O Filme Y recebeu 3 interações: duas hoje e uma há 7 dias.</p>
+
+  <div class="board">
+    $$S(X) = \tfrac{10}{13} \approx 0{,}77 \qquad S(Y) = \tfrac{3}{13} \approx 0{,}23$$
+    $$\begin{aligned}S_t(X) &= 10\cdot\left(\tfrac{1}{2}\right)^{28/7} = 10\cdot\tfrac{1}{16} = 0{,}625 \\ S_t(Y) &= 1 + 1 + \left(\tfrac{1}{2}\right)^{7/7} = 2{,}5\end{aligned}$$
+  </div>
+
+  <p>Sem decaimento, o Filme X ganha com folga, porque tem mais interações no total. Com decaimento, a ordem se inverte: 28 dias são quatro meias-vidas, então cada interação antiga de X vale \(1/16\), e as três interações recentes de Y passam a pesar mais que as dez antigas de X. Repare que \(S_t\) não é normalizado como \(S\). Ele serve para ordenar os itens, não como probabilidade.</p>
 
   <p>É uma abordagem barata, escalável, e um bom <em>fallback</em> resistente ao <em>cold-start</em>. Suas desvantagens, porém, são notáveis já nas suas premissas iniciais. Ao assumir que a probabilidade de aceitação de um item depende apenas da adoção global, o sistema descarta personalização e trata todos os usuários da mesma forma, sem levar em consideração suas preferências.</p>
+
+  <aside class="sources" id="fontes-pop">
+    <h4>Fontes</h4>
+    <ol>
+      <li id="fonte-pop-1">Wikipedia. <em>Exponential decay</em> (constante de decaimento e relação com a meia-vida). <a href="https://en.wikipedia.org/wiki/Exponential_decay">en.wikipedia.org/wiki/Exponential_decay</a>. Fonte secundária.</li>
+      <li>Exemplo dos Filmes X e Y: calculado neste documento.</li>
+    </ol>
+  </aside>
 </section>
 
 <!-- ============ FILTRAGEM COLABORATIVA ============ -->
 <section id="colaborativa">
   <h2>Filtragem Colaborativa</h2>
-  <p class="lead">Modelagem com Coeficiente de Correlação de Pearson para isolamento de viés atitudinal e Similaridade de Cosseno</p>
+  <p class="lead">Recomendar a um usuário o que agradou a pessoas de gosto parecido, medindo essa semelhança pelas notas que cada um deu.</p>
 
   <p>Os algoritmos baseados em popularidade são bons no que se propõem a fazer: recomendar itens mais globalmente relevantes naquele momento (caso esteja usando <em>time decay</em>), entretanto algumas aplicações exigem levar em consideração quem é o usuário que está acessando, para que seja possível fornecer uma recomendação mais customizada para aquele em específico.</p>
 
@@ -275,55 +310,71 @@ document.documentElement.setAttribute('data-theme',t)})();
 
   <p>Vamos supor que queremos, com a filtragem colaborativa, descobrir qual filme tem a maior chance de ser do interesse da Alice, o filme B ou C?</p>
 
-  <p>Para descobrir isso, vamos primeiro descobrir qual usuário é mais parecido com Alice. Duas das métricas de similaridade que podemos utilizar são a <strong>Similaridade de Cosseno</strong> e o <strong>Coeficiente de Correlação de Pearson</strong> (PCC).</p>
+  <p>Para descobrir isso, vamos primeiro descobrir qual usuário é mais parecido com Alice. Antes das fórmulas, um pouco de notação, que vamos usar até o fim do documento: \(r_{u,i}\) é a nota que o usuário \(u\) deu ao item \(i\), \(\overline{r}_u\) é a média de todas as notas que \(u\) deu, e \(I_{uv}\) é o conjunto de itens que \(u\) e \(v\) avaliaram, os dois. Só dá para comparar dois usuários nos itens de \(I_{uv}\). Para Alice e Fábio, por exemplo, \(I_{uv}\) = {Filme A, Filme D}. Duas das métricas de similaridade que podemos utilizar são a <strong>Similaridade de Cosseno</strong> e o <strong>Coeficiente de Correlação de Pearson</strong> (PCC).</p>
 
   <figure class="formula">
-    $$\mathrm{Cosine}(x,y) = \frac{\sum_{i=1}^{n} x_i\, y_i}{\sqrt{\sum_{i=1}^{n} x_i^2}\;\sqrt{\sum_{i=1}^{n} y_i^2}}$$
+    $$\cos(u,v) = \frac{\sum_{i \in I_{uv}} r_{u,i}\, r_{v,i}}{\sqrt{\sum_{i \in I_{uv}} r_{u,i}^2}\;\sqrt{\sum_{i \in I_{uv}} r_{v,i}^2}}$$
     <figcaption>Similaridade de Cosseno</figcaption>
   </figure>
 
+  <p>O cosseno trata as notas de cada usuário como um vetor e mede o cosseno do ângulo entre os dois vetores: 1 quando apontam exatamente na mesma direção, 0 quando são perpendiculares.</p>
+
   <figure class="formula">
-    $$\mathrm{PCC} = \frac{\sum \left(r_{ai}-\overline{r}_a\right)\left(r_{bi}-\overline{r}_b\right)}{\sqrt{\sum \left(r_{ai}-\overline{r}_a\right)^2}\;\sqrt{\sum \left(r_{bi}-\overline{r}_b\right)^2}}$$
+    $$\mathrm{PCC}(u,v) = \frac{\sum_{i \in I_{uv}} \left(r_{u,i}-\overline{r}_u\right)\left(r_{v,i}-\overline{r}_v\right)}{\sqrt{\sum_{i \in I_{uv}} \left(r_{u,i}-\overline{r}_u\right)^2}\;\sqrt{\sum_{i \in I_{uv}} \left(r_{v,i}-\overline{r}_v\right)^2}}$$
     <figcaption>Coeficiente de Correlação de Pearson (PCC)</figcaption>
   </figure>
 
-  <p>A diferença entre as duas abordagens é que a correlação de Pearson leva em consideração o quão difícil é um usuário dar uma nota alta. Por exemplo, se um usuário sempre dá nota acima de 4 para tudo que consome, é difícil dizer o quão fora da curva foi para ele a experiência de um item avaliado com um 5. Por outro lado, para um usuário que dificilmente avalia algo com nota superior a 3, uma nota 5 é uma grande preferência. Analisando a fórmula da correlação de Pearson, podemos observar que ele subtrai a média das notas daquele usuário da nota em si, fazendo com que o valor da nota seja o “quanto ela está distante da média”, seja positivamente ou negativamente.</p>
+  <p>Repare que o Pearson é o mesmo cálculo do cosseno, só que aplicado às notas menos a média de cada usuário. A diferença entre as duas abordagens é que a correlação de Pearson leva em consideração o quão difícil é um usuário dar uma nota alta. Por exemplo, se um usuário sempre dá nota acima de 4 para tudo que consome, é difícil dizer o quão fora da curva foi para ele a experiência de um item avaliado com um 5. Por outro lado, para um usuário que dificilmente avalia algo com nota superior a 3, uma nota 5 é uma grande preferência. Ao subtrair a média, o valor da nota passa a ser o “quanto ela está distante da média” daquele usuário, seja positivamente ou negativamente. O resultado vai de −1 (gostos opostos) a 1 (gostos que sobem e descem juntos). Um detalhe: a média \(\overline{r}_u\) é calculada sobre todas as notas do usuário, e não só sobre os itens em comum, como faz o GroupLens <sup class="ref"><a href="#fonte-cf-1">[1]</a></sup>.</p>
 
-  <p>Vamos calcular a similaridade entre Alice e Fábio.</p>
-
-  <div class="board">
-    $$\mathrm{sim}(\text{Alice},\text{Fábio}) = \frac{\overbrace{(5-4{,}5)(4-4{,}3)}^{\text{Filme A}} + \overbrace{(4-4{,}5)(4-4{,}3)}^{\text{Filme D}}}{\sqrt{\sum_{i\in I_{uv}} (r_{u,i}-\overline{r}_u)^2}\;\sqrt{\sum_{i\in I_{uv}} (r_{v,i}-\overline{r}_v)^2}}$$
-    $$\mathrm{sim}(\text{Alice},\text{Fábio}) = \frac{0{,}5\cdot(-0{,}3) + (-0{,}5)\cdot(-0{,}3)}{\cdots} = \frac{-0{,}15 + 0{,}15}{\cdots} = 0$$
-  </div>
-
-  <p>O coeficiente de correlação de Pearson entre Alice e Fábio resultou em zero. Agora vamos ver como fica esse valor entre Alice e Nathan.</p>
+  <p>Vamos calcular a similaridade entre Alice e Fábio. Primeiro, as médias dos três usuários:</p>
 
   <div class="board">
-    $$\mathrm{sim}(\text{Alice},\text{Nathan}) = -0{,}371$$
+    $$\begin{aligned}\overline{r}_{\text{Alice}} &= \tfrac{5+4}{2} = 4{,}5 \\ \overline{r}_{\text{Fábio}} &= \tfrac{4+5+4}{3} \approx 4{,}33 \\ \overline{r}_{\text{Nathan}} &= \tfrac{1+3+5+2}{4} = 2{,}75\end{aligned}$$
   </div>
 
-  <p>Como o resultado da similaridade entre Alice e Nathan foi menor do que a similaridade entre Alice e Fábio, o sistema entende que é mais provável que Alice se interesse por um filme que interessou Fábio do que outro que interessou Nathan.</p>
-
-  <div class="table-wrap">
-  <table class="ratings">
-    <thead><tr><th></th><th>Filme A</th><th>Filme B</th><th>Filme C</th><th>Filme D</th></tr></thead>
-    <tbody>
-      <tr><th>Alice</th><td>5</td><td class="empty">—</td><td class="empty">—</td><td>4</td></tr>
-      <tr><th>Fábio</th><td>4</td><td>5</td><td class="empty">—</td><td>4</td></tr>
-      <tr><th>Nathan</th><td>1</td><td>3</td><td>5</td><td>2</td></tr>
-    </tbody>
-  </table>
-  </div>
-
-  <p>Agora que já temos o coeficiente de correlação entre eles, podemos tentar prever qual seria a nota de Alice para os filmes B e C para, por fim, concluir qual devemos recomendar a ela.</p>
+  <p>Agora o Pearson sobre os Filmes A e D, os únicos que os dois avaliaram:</p>
 
   <div class="board">
-    $$\hat{r}_{u,i} = \overline{r}_u + \frac{\sum_{v \in N} \mathrm{sim}(u,v)\cdot\left(r_{v,i}-\overline{r}_v\right)}{\sum_{v \in N} \left|\mathrm{sim}(u,v)\right|}$$
-    $$\hat{B} = 4{,}5 + \frac{0\cdot 0{,}7 + (-0{,}371)\cdot 0{,}25}{0{,}371}$$
-    $$\hat{B} = 4{,}5 + (-0{,}25) = 4{,}25$$
+    $$\begin{aligned}\text{numerador} &= \overbrace{(5-4{,}5)(4-4{,}33)}^{\text{Filme A}} + \overbrace{(4-4{,}5)(4-4{,}33)}^{\text{Filme D}} \\ &\approx -0{,}17 + 0{,}17 = 0\end{aligned}$$
+    $$\begin{aligned}\text{denominador} &= \sqrt{0{,}5^2 + (-0{,}5)^2}\;\sqrt{(-0{,}33)^2 + (-0{,}33)^2} \\ &\approx 0{,}707 \cdot 0{,}471 \approx 0{,}333\end{aligned}$$
+    $$\mathrm{sim}(\text{Alice},\text{Fábio}) = \frac{0}{0{,}333} = 0$$
   </div>
 
-  <p>Logo, o sistema prevê que Alice avaliará o Filme B com a nota 4,25. Enquanto isso, o Filme C foi avaliado com uma nota prevista de 2,25. Esse valor baixo se deve ao fato principalmente da distância entre o coeficiente de correlação de Pearson entre Alice e Nathan, somado ao fato de que foi o único que avaliou o filme.</p>
+  <p>O coeficiente de correlação de Pearson entre Alice e Fábio resultou em zero. Agora vamos ver como fica esse valor entre Alice e Nathan, também sobre os Filmes A e D.</p>
+
+  <div class="board">
+    $$\begin{aligned}\text{numerador} &= (5-4{,}5)(1-2{,}75) + (4-4{,}5)(2-2{,}75) \\ &= -0{,}875 + 0{,}375 = -0{,}5\end{aligned}$$
+    $$\begin{aligned}\text{denominador} &= \sqrt{0{,}5^2 + (-0{,}5)^2}\;\sqrt{(-1{,}75)^2 + (-0{,}75)^2} \\ &\approx 0{,}707 \cdot 1{,}904 \approx 1{,}346\end{aligned}$$
+    $$\mathrm{sim}(\text{Alice},\text{Nathan}) = \frac{-0{,}5}{1{,}346} \approx -0{,}371$$
+  </div>
+
+  <p>O resultado da Alice com o Fábio costuma surpreender. Olhando a tabela, os dois parecem muito parecidos, já que ambos deram notas altas aos Filmes A e D. Mas o Pearson não pergunta se as notas são altas: ele pergunta se elas <strong>variam juntas</strong>. A Alice preferiu o A ao D (5 contra 4), enquanto o Fábio ficou indiferente entre os dois (4 e 4). Sobre esses dois filmes, não existe variação do Fábio para acompanhar a da Alice, e a correlação dá zero. O Nathan também preferiu um dos dois filmes, mas o contrário da Alice: deu 1 ao A e 2 ao D. Por isso a correlação com ele é negativa.</p>
+
+  <p>Vale fazer a mesma comparação com o cosseno, sobre as notas brutas:</p>
+
+  <div class="board">
+    $$\cos(\text{Alice},\text{Fábio}) = \frac{5\cdot 4 + 4\cdot 4}{\sqrt{5^2+4^2}\;\sqrt{4^2+4^2}} = \frac{36}{36{,}22} \approx 0{,}994$$
+    $$\cos(\text{Alice},\text{Nathan}) = \frac{5\cdot 1 + 4\cdot 2}{\sqrt{5^2+4^2}\;\sqrt{1^2+2^2}} = \frac{13}{14{,}32} \approx 0{,}908$$
+  </div>
+
+  <p>Pelo cosseno, os dois são quase idênticos à Alice, inclusive o Nathan, que deu 1 ao filme de que ela mais gostou. Isso acontece porque as notas são todas positivas: os vetores ficam todos no mesmo quadrante, e o ângulo entre eles é sempre pequeno. Sobre notas brutas, o cosseno mede pouco além de “os dois avaliaram bem as mesmas coisas”. Herlocker et al. relatam que, em filtragem colaborativa, a similaridade vetorial não se sai tão bem quanto a correlação de Pearson <sup class="ref"><a href="#fonte-cf-1">[1]</a></sup>, e por isso seguimos com o Pearson.</p>
+
+  <div class="note">Os dois valores de Pearson foram calculados com apenas <strong>dois</strong> filmes em comum, o que é muito pouco. Herlocker et al. relatam que vizinhos com correlação alta calculada sobre poucos itens em comum (frequentemente de três a cinco) se mostraram péssimos preditores. A correção que propõem é multiplicar a correlação por \(n/50\) quando os dois usuários têm menos de 50 itens em comum, sendo \(n\) o número de itens em comum <sup class="ref"><a href="#fonte-cf-1">[1]</a></sup>. Guarde a ideia: 0 e −0,371 são números frágeis.</div>
+
+  <p>Agora que já temos as similaridades, podemos tentar prever qual seria a nota de Alice para os filmes B e C para, por fim, concluir qual devemos recomendar a ela. A previsão parte da média da própria Alice e a corrige com os desvios dos vizinhos, ponderados pela similaridade. É a abordagem de desvio da média, usada pelo GroupLens <sup class="ref"><a href="#fonte-cf-1">[1]</a></sup>:</p>
+
+  <div class="formula">$$\hat{r}_{u,i} = \overline{r}_u + \frac{\sum_{v \in N} \mathrm{sim}(u,v)\cdot\left(r_{v,i}-\overline{r}_v\right)}{\sum_{v \in N} \left|\mathrm{sim}(u,v)\right|}$$</div>
+
+  <p>\(\hat{r}_{u,i}\) é a nota prevista, e \(N\) é o conjunto de vizinhos que avaliaram o item \(i\). O termo \(r_{v,i} - \overline{r}_v\) é o quanto o vizinho gostou do item em relação ao próprio padrão dele, e a divisão pela soma de \(|\mathrm{sim}|\) transforma a soma em uma média ponderada. Usar o desvio no lugar da nota bruta é a mesma ideia do Pearson: um 5 do Nathan, cuja média é 2,75, diz mais do que um 5 do Fábio, cuja média é 4,33. Para o Filme B, os vizinhos são o Fábio e o Nathan; para o Filme C, só o Nathan.</p>
+
+  <div class="board">
+    $$\begin{aligned}\hat{r}_{\text{Alice},B} &= 4{,}5 + \frac{0\cdot(5-4{,}33) + (-0{,}371)\cdot(3-2{,}75)}{|0| + |-0{,}371|} \\ &= 4{,}5 + \frac{-0{,}093}{0{,}371} = 4{,}5 - 0{,}25 = 4{,}25\end{aligned}$$
+    $$\begin{aligned}\hat{r}_{\text{Alice},C} &= 4{,}5 + \frac{(-0{,}371)\cdot(5-2{,}75)}{|-0{,}371|} \\ &= 4{,}5 - 2{,}25 = 2{,}25\end{aligned}$$
+  </div>
+
+  <p>O sistema prevê 4,25 para o Filme B e 2,25 para o C, e recomendaria o B. Mas repare de onde veio essa conclusão. Como a similaridade com o Fábio é zero, ele não contribui com nada, nem no Filme B, que ele avaliou com 5. As duas previsões dependem só do Nathan, e de um jeito específico: como a correlação com ele é negativa, o sistema <strong>inverte</strong> o gosto dele. O Nathan gostou um pouco do B (0,25 acima da média dele), e isso empurra a Alice um pouco para baixo. Ele adorou o C (2,25 acima da média), e isso empurra a Alice fortemente para baixo.</p>
+
+  <p>Há um detalhe ainda mais sutil. Quando um único vizinho avaliou o item, a similaridade aparece no numerador e no denominador e se cancela. Com correlação negativa, sobra \(\overline{r}_u - (r_{v,i} - \overline{r}_v)\), seja a correlação −0,371 ou −0,99. Uma correlação fraca, calculada sobre dois filmes, basta para inverter o gosto do Nathan por inteiro. Nem o ajuste \(n/50\) mudaria a previsão do C, porque ele também se cancela. O que os sistemas fazem é selecionar os vizinhos: só os que passam de um limiar de correlação, ou só os \(n\) mais correlacionados <sup class="ref"><a href="#fonte-cf-1">[1]</a></sup>. Com o ajuste, a correlação com o Nathan cairia para \(-0{,}371 \cdot 2/50 \approx -0{,}015\), abaixo de qualquer limiar razoável, e o sistema simplesmente não faria previsão. Para dados tão escassos, essa é a resposta honesta. O exemplo serve para mostrar a mecânica do UBCF, e não como uma recomendação confiável.</p>
 
   <p>Esse método, apesar de ter potencial de retornar boas recomendações, tem alguns problemas.</p>
 
@@ -331,30 +382,67 @@ document.documentElement.setAttribute('data-theme',t)})();
   <p>A quantidade de cálculos feitos escala com o quadrado do número de usuários, uma vez que, para cada usuário, deve-se calcular o coeficiente de correlação de Pearson (ou similaridade de cosseno) para todos os demais usuários na plataforma.</p>
 
   <h4 id="tempo">Não sensível ao tempo</h4>
-  <p>Não leva em consideração os interesses atuais do usuário, o que em alguns cenários pode ser um problema.</p>
+  <p>Todas as notas pesam o mesmo, sejam de ontem ou de cinco anos atrás. Um usuário que avaliou muitos filmes infantis quando os filhos eram pequenos continua sendo comparado a outros pais de crianças pequenas, mesmo que hoje só assista a documentários. O decaimento temporal da seção anterior resolve um problema parecido para a popularidade, mas nada equivalente entra no cálculo do Pearson.</p>
 
   <h4 id="sparsity"><em>Matrix Sparsity Problem</em></h4>
   <p>Nossa matriz tinha 3 dados faltantes, ou seja, 3 situações em que um usuário não avaliou um filme. Mas trata-se de um exemplo fictício. Em cenários reais, essa proporção de dados faltantes aumenta para quase 99% da matriz, uma vez que poucos ou nenhum usuário vai avaliar todos os itens presentes no sistema.</p>
 
   <!-- ---- IBCF ---- -->
   <h3 id="ibcf">Filtragem Colaborativa Baseada em Item (IBCF)</h3>
-  <p>Em contraste com os algoritmos de popularidade, a filtragem colaborativa baseada em usuário apresenta diversos avanços na personalização das recomendações. Entretanto, como observado anteriormente, essa abordagem possui algumas limitações, especialmente quanto a escalabilidade.</p>
+  <p>Em contraste com os algoritmos de popularidade, a filtragem colaborativa baseada em usuário apresenta diversos avanços na personalização das recomendações. Entretanto, como observado anteriormente, essa abordagem possui algumas limitações, especialmente quanto à escalabilidade.</p>
 
-  <p>O <strong>Item-Based Collaborative Filtering</strong> é uma abordagem que, ao invés de procurar por usuários similares, procura por itens similares. Enquanto o UBCF procura usuários com gostos parecidos, para completar a matriz de avaliação usuário-item, o IBCF procura por itens similares, isto é, que foram alvo de interação positiva de um grupo similar de usuários, para que quando o usuário interagir positivamente (avaliar bem, por exemplo) com um item, o sistema saiba que pode recomendar mais itens similares. Isso resolve o problema da sensibilidade ao tempo mencionado anteriormente.</p>
+  <p>O <strong>Item-Based Collaborative Filtering</strong> é uma abordagem que, ao invés de procurar por usuários similares, procura por itens similares. Enquanto o UBCF procura usuários com gostos parecidos para completar a matriz de avaliação usuário-item, o IBCF procura itens similares, isto é, itens que receberam notas parecidas dos mesmos usuários. Quando o usuário interage positivamente (avaliando bem, por exemplo) com um item, o sistema sabe que pode recomendar outros itens parecidos com ele. Isso também alivia o problema da sensibilidade ao tempo: como a recomendação parte do item com que o usuário acabou de interagir, ela acompanha o interesse do momento, ainda que as similaridades entre itens continuem sendo calculadas sobre todo o histórico.</p>
 
-  <p>Um exemplo de aplicação para essa abordagem, é quando se interage com um produto em uma loja online, e logo abaixo podemos ver itens similares àquele. Isso significa que usuários que interagiram com aquele item, normalmente se interessaram pelos novos itens apresentados pelo sistema de recomendação.</p>
+  <p>Um exemplo de aplicação para essa abordagem é quando se interage com um produto em uma loja online e, logo abaixo, aparecem itens similares àquele. Isso significa que os usuários que interagiram com aquele item normalmente também se interessaram pelos itens apresentados pelo sistema de recomendação.</p>
 
-  <p>O IBCF não resolve o problema O(N²), uma vez que ainda precisamos calcular a similaridade entre os itens (frequentemente usando a Similaridade de Cosseno), cuja complexidade continua sendo quadrática. Entretanto, a proporção de usuários em relação aos itens é, frequentemente, maior e nesses casos, o IBCF tira vantagem dessa diferença. Além disso, as relações entre os itens mudam com uma frequência muito menor do que as interações entre os usuários.</p>
+  <p>A similaridade entre itens usa as mesmas métricas de antes, agora aplicadas às colunas da matriz. Com o cosseno, sendo \(U_{ij}\) o conjunto de usuários que avaliaram os itens \(i\) e \(j\), os dois:</p>
 
-  <p>A esparsidade dos dados (<em>Matrix Sparsity Problem</em>) continua sendo um problema, junto ao <strong>cold start</strong>, uma vez que a filtragem colaborativa se beneficia de dados de interações, o que, naturalmente, é escasso no início de um sistema, na criação de uma nova conta de usuário e na inserção de um novo item. Para resolver esse problema, uma abordagem híbrida é frequentemente utilizada, com algoritmos baseados em popularidade para cold start com usuários, e <strong>Content-Based Filtering</strong> para cold start com itens.</p>
+  <div class="formula">$$\cos(i,j) = \frac{\sum_{u \in U_{ij}} r_{u,i}\, r_{u,j}}{\sqrt{\sum_{u \in U_{ij}} r_{u,i}^2}\;\sqrt{\sum_{u \in U_{ij}} r_{u,j}^2}}$$</div>
+
+  <p>Para prever a nota do usuário \(u\) para o item \(i\), Sarwar et al. usam uma soma ponderada das notas que o próprio \(u\) deu aos itens parecidos com \(i\) <sup class="ref"><a href="#fonte-cf-2">[2]</a></sup>:</p>
+
+  <div class="formula">$$\hat{r}_{u,i} = \frac{\sum_{j \in N} \mathrm{sim}(i,j)\cdot r_{u,j}}{\sum_{j \in N} \left|\mathrm{sim}(i,j)\right|}$$</div>
+
+  <p>\(N\) é o conjunto de itens similares a \(i\) que o usuário \(u\) já avaliou. Cada nota de \(u\) entra com o peso da similaridade do item correspondente com \(i\), e a divisão pela soma dos pesos mantém a previsão dentro da escala de notas <sup class="ref"><a href="#fonte-cf-2">[2]</a></sup>. Repare na diferença para o UBCF: lá, as notas vinham dos vizinhos; aqui, vêm do próprio usuário, e os “vizinhos” são itens.</p>
+
+  <p>Vamos aplicar à mesma matriz. A Alice avaliou os Filmes A e D, então são eles que vão servir de base para prever o B e o C. Para o Filme B, os usuários em comum com A e com D são o Fábio e o Nathan.</p>
+
+  <div class="board">
+    $$\cos(B,A) = \frac{5\cdot 4 + 3\cdot 1}{\sqrt{5^2+3^2}\;\sqrt{4^2+1^2}} \approx 0{,}957$$
+    $$\cos(B,D) = \frac{5\cdot 4 + 3\cdot 2}{\sqrt{5^2+3^2}\;\sqrt{4^2+2^2}} \approx 0{,}997$$
+    $$\hat{r}_{\text{Alice},B} = \frac{0{,}957\cdot 5 + 0{,}997\cdot 4}{0{,}957 + 0{,}997} \approx 4{,}49$$
+  </div>
+
+  <p>Para o Filme C, o único usuário em comum com qualquer outro filme é o Nathan.</p>
+
+  <div class="board">
+    $$\cos(C,A) = \frac{5\cdot 1}{\sqrt{5^2}\;\sqrt{1^2}} = 1$$
+    $$\cos(C,D) = \frac{5\cdot 2}{\sqrt{5^2}\;\sqrt{2^2}} = 1$$
+    $$\hat{r}_{\text{Alice},C} = \frac{1\cdot 5 + 1\cdot 4}{1 + 1} = 4{,}5$$
+  </div>
+
+  <p>Com o IBCF, o Filme C empata com o B (4,50 contra 4,49), ao contrário do que o UBCF concluiu. A causa é a mesma esparsidade de antes, agora vista pelo lado dos itens. Só o Nathan avaliou o C, e o cosseno entre dois vetores de uma única componente positiva é sempre 1. O cálculo declara que o C é idêntico ao A, embora o Nathan tenha dado 1 a um e 5 ao outro. Sarwar et al. apontam que o cosseno simples ignora que cada usuário usa a escala de notas do seu jeito, e propõem o <strong>cosseno ajustado</strong>, que subtrai de cada nota a média do usuário que a deu <sup class="ref"><a href="#fonte-cf-2">[2]</a></sup>. Aqui, nem ele salvaria: com um único avaliador em comum, qualquer uma dessas medidas só pode dar +1 ou −1.</p>
+
+  <p>O IBCF não resolve o problema O(N²), uma vez que ainda precisamos calcular a similaridade entre todos os pares de itens, e a complexidade continua quadrática, agora no número de itens. A vantagem é que, em muitos sistemas, há muito mais usuários do que itens. Com 1 milhão de usuários e 10 mil itens, por exemplo, o UBCF compara cerca de \(5 \times 10^{11}\) pares de usuários, e o IBCF cerca de \(5 \times 10^{7}\) pares de itens. Além disso, Sarwar et al. observam que o conjunto de itens é mais estático que o de usuários, e usam isso para pré-calcular as similaridades entre itens, guardando só os \(k\) itens mais parecidos com cada um <sup class="ref"><a href="#fonte-cf-2">[2]</a></sup>.</p>
+
+  <p>A esparsidade dos dados (<em>Matrix Sparsity Problem</em>) continua sendo um problema, como o exemplo acabou de mostrar, junto ao <strong><em>cold start</em></strong>. A filtragem colaborativa depende de dados de interações, e eles são naturalmente escassos no início de um sistema, na criação de uma nova conta de usuário e na inserção de um novo item. Para resolver esse problema, uma abordagem híbrida é frequentemente utilizada, com algoritmos baseados em popularidade para o <em>cold start</em> de usuários, e <strong><em>Content-Based Filtering</em></strong> para o <em>cold start</em> de itens.</p>
+
+  <aside class="sources" id="fontes-cf">
+    <h4>Fontes</h4>
+    <ol>
+      <li id="fonte-cf-1">Herlocker, J. L.; Konstan, J. A.; Borchers, A.; Riedl, J. <em>An Algorithmic Framework for Performing Collaborative Filtering</em>. SIGIR ’99, p. 230–237, 1999. DOI: <a href="https://doi.org/10.1145/312624.312682">10.1145/312624.312682</a>. Texto lido: <a href="https://files.grouplens.org/papers/algs.pdf">files.grouplens.org/papers/algs.pdf</a>.</li>
+      <li id="fonte-cf-2">Sarwar, B.; Karypis, G.; Konstan, J.; Riedl, J. <em>Item-Based Collaborative Filtering Recommendation Algorithms</em>. WWW10, p. 285–295, 2001. DOI: <a href="https://doi.org/10.1145/371920.372071">10.1145/371920.372071</a>. Texto lido: <a href="https://archives.iw3c2.org/www10/cdrom/papers/519/">archives.iw3c2.org/www10/cdrom/papers/519</a>.</li>
+      <li>Exemplo numérico (matriz de Alice, Fábio e Nathan, similaridades e previsões): calculado neste documento.</li>
+    </ol>
+  </aside>
 </section>
 
 <!-- ============ SEÇÕES SÓ COM SUBTÍTULO NO ORIGINAL ============ -->
 <section id="svd">
   <h2>Modelos Fatoriais e SVD</h2>
-  <p class="lead">Decomposição de matrizes esparsas em espaços latentes de dimensionalidade reduzida.</p>
+  <p class="lead">Resumir cada usuário e cada item em poucos números, e prever as notas que faltam a partir deles.</p>
 
-  <p>Tanto o UBCF quanto o IBCF trabalham diretamente sobre a matriz usuário-item: para recomendar, comparam linhas com linhas (ou colunas com colunas). Por isso, herdam os dois problemas que apareceram nas seções anteriores, o custo quadrático de comparar todos contra todos e a esparsidade da matriz, que em cenários reais passa de 99% de células vazias. Os <strong>modelos fatoriais</strong> mudam a pergunta. Em vez de procurar vizinhos, eles tentam descobrir um pequeno conjunto de características escondidas que expliquem as notas observadas, e passam a prever qualquer nota a partir delas.</p>
+  <p>Tanto o UBCF quanto o IBCF trabalham diretamente sobre a matriz usuário-item: para recomendar, comparam linhas com linhas (ou colunas com colunas). Por isso, herdam os dois problemas que apareceram nas seções anteriores, o custo quadrático de comparar todos contra todos e a esparsidade da matriz, que em cenários reais chega perto de 99% de células vazias. Os <strong>modelos fatoriais</strong> mudam a pergunta. Em vez de procurar vizinhos, eles tentam descobrir um pequeno conjunto de características escondidas que expliquem as notas observadas, e passam a prever qualquer nota a partir delas.</p>
 
   <h3 id="svd-latentes">Fatores latentes</h3>
 
@@ -369,7 +457,7 @@ document.documentElement.setAttribute('data-theme',t)})();
   <p>Vamos voltar ao exemplo da Alice, do Fábio e do Nathan com <em>f</em> = 2. Na animação abaixo, a Alice e o Filme B são dois vetores no plano dos fatores. As componentes de cada vetor são lidas nos eixos, multiplicadas fator a fator, e as duas parcelas são empilhadas sobre a escala de notas até chegar à nota prevista. Os valores foram arredondados de um ajuste real que fazemos mais adiante nesta seção.</p>
 
   <figure class="video">
-    <video controls autoplay loop muted playsinline src="videos/produto-interno.mp4"></video>
+    <video controls loop muted playsinline preload="metadata" poster="videos/produto-interno.jpg" src="videos/produto-interno.mp4"></video>
     <figcaption>A nota prevista é a soma dos produtos fator a fator: 2,5 × 1,5 + 0,5 × 1,5 = 4,5.</figcaption>
   </figure>
 
@@ -401,10 +489,10 @@ document.documentElement.setAttribute('data-theme',t)})();
       </tbody></table></div>
   </div>
 
-  <p>Cada linha de \(P\) é o vetor de um usuário e cada coluna de \(Q^{	op}\) é o vetor de um filme. A célula da Alice com o Filme B, por exemplo, é a primeira linha de \(P\) vezes a segunda coluna de \(Q^{	op}\): 2,40 · 1,37 + 0,73 · 1,69 ≈ 4,52, exatamente a conta que a animação acima mostrou com valores arredondados. Agora o aviso: \(R\) tem 12 células, \(P\) tem 6 números e \(Q^{	op}\) tem 8, ou seja, 14 números para guardar uma matriz de 12 células. Neste exemplo o modelo não economiza nada, e ainda por cima tem mais parâmetros do que as 9 notas observadas, o que vai importar no final. A economia só aparece em escala real, e a animação abaixo mostra a mesma conta com uma matriz de 6 × 8 e depois com o tamanho do Netflix Prize <sup class="ref"><a href="#fonte-2">[2]</a></sup>.</p>
+  <p>Cada linha de \(P\) é o vetor de um usuário e cada coluna de \(Q^{\top}\) é o vetor de um filme. A célula da Alice com o Filme B, por exemplo, é a primeira linha de \(P\) vezes a segunda coluna de \(Q^{\top}\): 2,40 · 1,37 + 0,73 · 1,69 ≈ 4,52, exatamente a conta que a animação acima mostrou com valores arredondados. Agora o aviso: \(R\) tem 12 células, \(P\) tem 6 números e \(Q^{\top}\) tem 8, ou seja, 14 números para guardar uma matriz de 12 células. Neste exemplo o modelo não economiza nada, e ainda por cima tem mais parâmetros do que as 9 notas observadas, o que vai importar no final. A economia só aparece em escala real, e a animação abaixo mostra a mesma conta com uma matriz de 6 × 8 e depois com o tamanho do Netflix Prize <sup class="ref"><a href="#fonte-2">[2]</a></sup>.</p>
 
   <figure class="video">
-    <video controls autoplay loop muted playsinline src="videos/compressao-matrizes.mp4"></video>
+    <video controls loop muted playsinline preload="metadata" poster="videos/compressao-matrizes.jpg" src="videos/compressao-matrizes.mp4"></video>
     <figcaption>Contando células: uma matriz 6 × 8 (48 células) contra duas matrizes de fatores (28 números), e depois a mesma conta com 500 mil usuários, 17 mil filmes e 40 fatores.</figcaption>
   </figure>
 
@@ -417,7 +505,7 @@ document.documentElement.setAttribute('data-theme',t)})();
   <p>Começamos com uma matriz pequena o bastante para desenhar, \(A = \begin{pmatrix}2 & 2\\-1 & 1\end{pmatrix}\). Ela atua sobre o plano: pega cada ponto e o leva para outro lugar. Se aplicarmos \(A\) a todos os pontos do círculo de raio 1, o resultado é uma elipse. O SVD diz como essa elipse nasce, em três movimentos, e a animação abaixo mostra cada um deles.</p>
 
   <figure class="video">
-    <video controls autoplay loop muted playsinline src="videos/svd-tres-movimentos.mp4"></video>
+    <video controls loop muted playsinline preload="metadata" poster="videos/svd-tres-movimentos.jpg" src="videos/svd-tres-movimentos.mp4"></video>
     <figcaption>O círculo vira a elipse de <em>A</em> em três movimentos: <em>V</em><sup>T</sup> gira, Σ estica nos eixos e <em>U</em> reflete.</figcaption>
   </figure>
 
@@ -511,7 +599,7 @@ document.documentElement.setAttribute('data-theme',t)})();
   <p>Os dois vetores usam os valores <em>antigos</em> um do outro no cálculo, e um único passo já reduziu o erro de 4,0 para 3,46. O treinamento completo repete esse passo para todas as notas conhecidas, várias vezes (cada volta pelo conjunto de treino é uma <em>época</em>).</p>
 
   <figure class="video">
-    <video controls autoplay loop muted playsinline src="videos/sgd-passo.mp4"></video>
+    <video controls loop muted playsinline preload="metadata" poster="videos/sgd-passo.jpg" src="videos/sgd-passo.mp4"></video>
     <figcaption>Um passo de SGD aproxima os vetores da usuária e do item, e o erro de previsão diminui.</figcaption>
   </figure>
 
@@ -529,12 +617,20 @@ document.documentElement.setAttribute('data-theme',t)})();
 
   <p>Segundo Koren, Bell e Volinsky, o SGD costuma ser mais simples e rápido, mas o ALS é preferível em dois casos. O primeiro é a paralelização: cada \(q_i\) é calculado independentemente dos demais, e cada \(p_u\) também. O segundo são sistemas baseados em <strong>feedback implícito</strong> (compras, cliques, tempo assistido), onde a matriz não é esparsa, porque ausência de interação também carrega informação, e percorrer um a um todos os pares, como o SGD faz, seria inviável <sup class="ref"><a href="#fonte-1">[1]</a></sup>.</p>
 
-  <p>O artigo que formalizou esse caso, de Hu, Koren e Volinsky, trata a interação como uma preferência binária \(p_{ui}\) (1 se houve interação, 0 caso contrário) ponderada por uma confiança \(c_{ui} = 1 + \alpha\, r_{ui}\), em que \(r_{ui}\) é, por exemplo, o número de vezes que o usuário consumiu o item. A função de custo passa a somar sobre <em>todos</em> os pares, e cada fator de usuário tem solução fechada <sup class="ref"><a href="#fonte-3">[3]</a></sup>:</p>
+  <p>O artigo que formalizou esse caso, de Hu, Koren e Volinsky, troca a nota por duas quantidades. A primeira é uma preferência binária \(p_{ui}\): 1 se o usuário interagiu com o item, 0 caso contrário. A segunda é uma confiança \(c_{ui} = 1 + \alpha\, r_{ui}\), em que \(r_{ui}\) agora é, por exemplo, o número de vezes que o usuário consumiu o item, e não uma nota. Quem consumiu um item dez vezes provavelmente gosta dele; quem nunca o consumiu talvez apenas não o conheça, por isso o 0 recebe confiança baixa. A função de custo passa a somar sobre <em>todos</em> os pares <sup class="ref"><a href="#fonte-3">[3]</a></sup>:</p>
 
-  <div class="formula">$$\begin{aligned}\min_{x_{\ast},\,y_{\ast}}\; & \sum_{u,i} c_{ui}\left(p_{ui} - x_u^{\top} y_i\right)^2 \\ & + \lambda\left(\sum_u \lVert x_u \rVert^2 + \sum_i \lVert y_i \rVert^2\right)\end{aligned}$$
-  <div class="formula">$$x_u = \left(Y^{\top} C^u Y + \lambda I\right)^{-1} Y^{\top} C^u\, p(u)$$</div>
+  <div class="formula">$$\begin{aligned}\min_{x_{\ast},\,y_{\ast}}\; & \sum_{u,i} c_{ui}\left(p_{ui} - x_u^{\top} y_i\right)^2 \\ & + \lambda\left(\sum_u \lVert x_u \rVert^2 + \sum_i \lVert y_i \rVert^2\right)\end{aligned}$$</div>
 
-  <p>Nessa notação do artigo, \(x_u\) e \(y_i\) são os fatores de usuário e de item, \(Y\) é a matriz com todos os \(y_i\) nas linhas, \(C^u\) é a matriz diagonal com as confianças \(c_{ui}\) do usuário \(u\), e \(p(u)\) é o vetor de preferências dele. O custo desse cálculo seria alto, mas o artigo usa o fato de que \(Y^{\top} C^u Y = Y^{\top} Y + Y^{\top}(C^u - I)Y\). O primeiro termo é igual para todos os usuários e é calculado uma vez, e o segundo só envolve os itens com os quais aquele usuário interagiu, que são poucos <sup class="ref"><a href="#fonte-3">[3]</a></sup>.</p>
+  <div class="note">Atenção à notação, que é a do artigo: aqui \(x_u\) e \(y_i\) são os vetores de usuário e de item (os nossos \(p_u\) e \(q_i\)), e \(p_{ui}\) é a preferência binária, que não tem nada a ver com o vetor \(p_u\) das seções anteriores.</div>
+
+  <p>Comparada com a função de custo do SGD, mudam duas coisas: a soma passa a incluir as células “vazias” (com \(p_{ui} = 0\)), e cada erro é multiplicado pela confiança naquela célula. Como a soma tem \(m \cdot n\) termos, percorrê-los um a um, como o SGD faz, seria inviável, e é aqui que o ALS ganha.</p>
+
+  <details>
+    <summary>Detalhe: a solução fechada de cada passo do ALS implícito</summary>
+    <p>Com os vetores de item fixos, cada \(x_u\) tem solução exata <sup class="ref"><a href="#fonte-3">[3]</a></sup>:</p>
+    <div class="formula">$$x_u = \left(Y^{\top} C^u Y + \lambda I\right)^{-1} Y^{\top} C^u\, p(u)$$</div>
+    <p>\(Y\) é a matriz com todos os \(y_i\) nas linhas, \(C^u\) é a matriz diagonal com as confianças \(c_{ui}\) do usuário \(u\), e \(p(u)\) é o vetor de preferências dele. Calcular \(Y^{\top} C^u Y\) para cada usuário seria caro, mas o artigo usa o fato de que \(Y^{\top} C^u Y = Y^{\top} Y + Y^{\top}(C^u - I)Y\). O primeiro termo é igual para todos os usuários e é calculado uma vez. O segundo só envolve os itens com os quais aquele usuário interagiu, que são poucos, porque fora deles \(c_{ui} = 1\) e \(C^u - I\) é zero <sup class="ref"><a href="#fonte-3">[3]</a></sup>.</p>
+  </details>
 
   <h3 id="svd-exemplo">Aplicando ao exemplo</h3>
 
@@ -558,6 +654,7 @@ document.documentElement.setAttribute('data-theme',t)})();
     <thead><tr><th>Método</th><th>Alice, Filme B</th><th>Alice, Filme C</th></tr></thead>
     <tbody>
       <tr><td>UBCF com Pearson</td><td>4,25</td><td>2,25</td></tr>
+      <tr><td>IBCF com cosseno</td><td>4,49</td><td>4,50</td></tr>
       <tr><td>SVD truncado com imputação pela média (<em>k</em> = 2)</td><td>4,40</td><td>4,75</td></tr>
       <tr><td>Fatoração por SGD (<em>f</em> = 2)</td><td>4,52</td><td>3,16</td></tr>
       <tr><td>Fatoração por SGD com vieses (<em>f</em> = 2)</td><td>4,99</td><td>4,18</td></tr>
@@ -565,7 +662,7 @@ document.documentElement.setAttribute('data-theme',t)})();
   </table>
   </div>
 
-  <p>Os quatro métodos colocam o B acima do C, mas a nota do C varia de 2,25 a 4,75. Isso não é defeito de algum deles em particular. Ninguém além do Nathan avaliou o Filme C, então não existe informação suficiente para fixar essa coluna, e cada método preenche o vazio do seu jeito. Com 14 parâmetros para 9 notas, o modelo também consegue reproduzir quase perfeitamente os dados de treino sem que isso garanta qualquer coisa sobre o que ele prevê fora deles. Repare ainda que a nota prevista do Fábio para o Filme C (5,34) passou do máximo da escala. Em sistemas reais, a predição é limitada à faixa de notas válida, e a avaliação é feita sobre notas separadas do treino. Em conjuntos como o do Netflix Prize, com mais de 100 milhões de notas, há muito mais notas por parâmetro do que aqui <sup class="ref"><a href="#fonte-1">[1]</a></sup>. O nosso exemplo serve para mostrar a mecânica, não para escolher um vencedor.</p>
+  <p>Os métodos concordam razoavelmente sobre o Filme B (de 4,25 a 4,99), mas não sobre o C, cuja nota varia de 2,25 a 4,75. Três dos cinco colocam o B à frente, o IBCF praticamente empata os dois e o SVD com imputação inverte a ordem. Isso não é defeito de algum deles em particular. Ninguém além do Nathan avaliou o Filme C, então não existe informação suficiente para fixar essa coluna, e cada método preenche o vazio do seu jeito. Com 14 parâmetros para 9 notas, o modelo também consegue reproduzir quase perfeitamente os dados de treino sem que isso garanta qualquer coisa sobre o que ele prevê fora deles. Repare ainda que a nota prevista do Fábio para o Filme C (5,34) passou do máximo da escala. Em sistemas reais, a predição é limitada à faixa de notas válida, e a avaliação é feita sobre notas separadas do treino. Em conjuntos como o do Netflix Prize, com mais de 100 milhões de notas, há muito mais notas por parâmetro do que aqui <sup class="ref"><a href="#fonte-1">[1]</a></sup>. O nosso exemplo serve para mostrar a mecânica, não para escolher um vencedor.</p>
 
   <details>
     <summary>Código que gera os números deste exemplo</summary>
@@ -612,7 +709,7 @@ P[u]+=g*(err*Q[i]-lam*P[u]);Q[i]+=g*(err*pu-lam*Q[i]);print(P[u],Q[i],P[u]@Q[i],
   <h4>Modelo estático</h4>
   <p>Na forma básica, a fatoração não distingue uma nota de ontem de uma de cinco anos atrás, o mesmo defeito apontado no UBCF. A dinâmica temporal descrita em Extensões corrige isso, mas ao custo de mais parâmetros.</p>
 
-  <p>Os fatores latentes são, no fundo, vetores que representam usuários e itens em um espaço de poucas dimensões, aprendidos de forma que a proximidade entre eles tenha significado. Essa ideia de representar entidades como vetores e aprender as representações aparece de novo nas seções de redes neurais e de <em>embeddings</em> por tradução.</p>
+  <p>Os fatores latentes são, no fundo, vetores que representam usuários e itens em um espaço de poucas dimensões, aprendidos de forma que a proximidade entre eles tenha significado. Essa ideia de representar entidades como vetores e aprender as representações aparece de novo na seção de grafos de conhecimento, em que entidades e relações também viram vetores aprendidos.</p>
 
   <aside class="sources" id="fontes-svd">
     <h4>Fontes</h4>
@@ -629,24 +726,429 @@ P[u]+=g*(err*Q[i]-lam*P[u]);Q[i]+=g*(err*pu-lam*Q[i]);print(P[u],Q[i],P[u]@Q[i],
   </aside>
 </section>
 
-<section id="tfidf">
-  <h2>Modelagem Linguística (TF-IDF)</h2>
-  <p class="lead">Formulação logarítmica para penalização de termos ubíquos e recompensa de léxicos característicos.</p>
+<section id="conhecimento">
+  <h2>Sistemas Baseados em Conhecimento</h2>
+  <p class="lead">Recomendar a partir do que se sabe sobre os itens e sobre o que o usuário pediu, usando casos parecidos já resolvidos ou regras explícitas.</p>
+  <p class="pending">Seção em construção.</p>
 </section>
 
-<section id="cbr">
-  <h2>Raciocínio Baseado em Conhecimento (CBR)</h2>
-  <p class="lead">Otimização de similaridade de atributos entre problemas alvo e repositórios indexados.</p>
+<section id="grafos">
+  <h2>Grafos de Conhecimento</h2>
+  <p class="lead">Representar itens, usuários e atributos como uma rede de relações, e aprender vetores em que cada relação funciona como um deslocamento.</p>
+  <p class="pending">Seção em construção.</p>
 </section>
 
-<section id="rnn">
-  <h2>Redes Neurais Recorrentes (RNN e RvNN)</h2>
-  <p class="lead">Propagação vetorial de estados ocultos, retropropagação no tempo (BPTT) e mitigação do “Vanishing Gradient” com portas lógicas.</p>
+<!-- ============ ESTUDO DE CASO: IFVEST ============ -->
+<section id="ifvest">
+  <h2>Estudo de Caso: Recomendação no IFVest</h2>
+  <p class="lead">Como aplicar algoritmos baseados em popularidade e filtragem colaborativa baseada em itens (IBCF) à plataforma educacional IFVest, conectando questões, simulados, flashcards e materiais de revisão pela mesma árvore taxonômica.</p>
+
+  <h3 id="ifvest-taxonomia">Taxonomia Unificada e Diagnóstico Atual</h3>
+  <p>A investigação passiva do repositório <code>/root_lab/ifvest</code> mostrou que a plataforma organiza seu catálogo pedagógico em torno de uma hierarquia canônica de três níveis no banco PostgreSQL: <strong>Disciplina</strong> (<code>disciplines</code>) \(\rightarrow\) <strong>Assunto</strong> (<code>subjects</code>) \(\rightarrow\) <strong>Tópico</strong> (<code>topics</code>). Atualmente, embora a estrutura relacional já registre o histórico detalhado de resoluções, a seleção de itens ainda não utiliza algoritmos de recomendação:</p>
+  <ul>
+    <li><strong>Sessões do IFQuiz</strong> (<code>select_next_quiz_question</code>): filtram estritamente por disciplina e tópicos e sorteiam a próxima questão de forma pseudoaleatória uniforme via <code>random.Random("quiz:{id}:position:{pos}")</code>;</li>
+    <li><strong>Pergunta do Dia</strong> (<code>get_daily_question</code>): utiliza um deslocamento aritmético determinístico pela data corrente, <code>(today.toordinal() * 37) % total_q</code>;</li>
+    <li><strong>Simulados Aleatórios</strong> (<code>create_random_mocktest</code>): sorteiam questões diretamente no banco de dados via <code>ORDER BY RANDOM()</code>;</li>
+    <li><strong>Dificuldade não calibrada</strong> (ADR 0001): as 1.164 questões objetivas importadas da Unicamp não trazem metadado de dificuldade na fonte original e recebem o valor fixo <code>difficulty = 2</code>, motivo pelo qual o seletor de dificuldade foi temporariamente ocultado no frontend.</li>
+  </ul>
+
+  <p>Como todos os módulos de estudo da plataforma — <strong>Questões (IFQuiz e Simulados)</strong>, <strong>Flashcards</strong> e <strong>Materiais de Revisão</strong> — compartilham o mesmo identificador hierárquico <code>discipline_id → subject_id → topic_id</code>, o motor de recomendação pode operar de forma <strong>multi-módulo e multi-nível</strong>: as interações em qualquer módulo alimentam o diagnóstico do estudante no tópico, e a recomendação pode sugerir tanto um item específico (uma questão ou flashcard) quanto o <strong>tópico, assunto ou disciplina</strong> prioritário.</p>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 780 340" role="img" aria-label="Diagrama da taxonomia unificada Disciplina, Assunto e Tópico conectando Questões, Flashcards e Materiais de Revisão ao motor de recomendação">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--accent)"/>
+        </marker>
+        <marker id="arr-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--muted)"/>
+        </marker>
+      </defs>
+      <!-- Camada 1: Taxonomia -->
+      <rect x="20" y="18" width="740" height="78" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="1.5"/>
+      <text x="36" y="40" font-size="11" font-weight="700" fill="var(--muted)" letter-spacing="0.06em">TAXONOMIA CURRICULAR COMPARTILHADA (CHAVE CANÔNICA)</text>
+      <rect x="40" y="50" width="185" height="34" rx="6" fill="var(--note)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="132" y="71" font-size="13" font-weight="600" text-anchor="middle" fill="var(--fg)">Disciplina (discipline_id)</text>
+      <line x1="225" y1="67" x2="285" y2="67" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#arr)"/>
+      <text x="255" y="60" font-size="10" text-anchor="middle" fill="var(--muted)">1 : N</text>
+      <rect x="290" y="50" width="185" height="34" rx="6" fill="var(--note)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="382" y="71" font-size="13" font-weight="600" text-anchor="middle" fill="var(--fg)">Assunto (subject_id)</text>
+      <line x1="475" y1="67" x2="535" y2="67" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#arr)"/>
+      <text x="505" y="60" font-size="10" text-anchor="middle" fill="var(--muted)">1 : N</text>
+      <rect x="540" y="50" width="200" height="34" rx="6" fill="var(--accent)"/>
+      <text x="640" y="71" font-size="13" font-weight="700" text-anchor="middle" fill="#ffffff">Tópico (topic_id)</text>
+
+      <!-- Setas do Tópico para os Módulos -->
+      <path d="M 590 84 L 145 136" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arr-muted)"/>
+      <path d="M 640 84 L 390 136" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arr-muted)"/>
+      <path d="M 670 84 L 635 136" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arr-muted)"/>
+
+      <!-- Camada 2: Módulos do IFVest -->
+      <rect x="30" y="140" width="225" height="72" rx="7" fill="var(--bg)" stroke="var(--line)" stroke-width="1.5"/>
+      <text x="142" y="162" font-size="13" font-weight="700" text-anchor="middle" fill="var(--fg)">Questões (Quiz &amp; Simulados)</text>
+      <text x="142" y="181" font-size="11" text-anchor="middle" fill="var(--muted)">Acertos, erros, tempo, dicas</text>
+      <text x="142" y="198" font-size="10" text-anchor="middle" fill="var(--accent)">question_history / mocktest_answers</text>
+
+      <rect x="278" y="140" width="225" height="72" rx="7" fill="var(--bg)" stroke="var(--line)" stroke-width="1.5"/>
+      <text x="390" y="162" font-size="13" font-weight="700" text-anchor="middle" fill="var(--fg)">Flashcards de Estudo</text>
+      <text x="390" y="181" font-size="11" text-anchor="middle" fill="var(--muted)">Facilidade de recordação, repetições</text>
+      <text x="390" y="198" font-size="10" text-anchor="middle" fill="var(--accent)">Vinculados a topic_id</text>
+
+      <rect x="525" y="140" width="225" height="72" rx="7" fill="var(--bg)" stroke="var(--line)" stroke-width="1.5"/>
+      <text x="637" y="162" font-size="13" font-weight="700" text-anchor="middle" fill="var(--fg)">Materiais de Revisão</text>
+      <text x="637" y="181" font-size="11" text-anchor="middle" fill="var(--muted)">Leitura concluída, tempo, favoritos</text>
+      <text x="637" y="198" font-size="10" text-anchor="middle" fill="var(--accent)">Vinculados a topic_id</text>
+
+      <!-- Setas para o Motor -->
+      <line x1="142" y1="212" x2="260" y2="255" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="390" y1="212" x2="390" y2="255" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="637" y1="212" x2="520" y2="255" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr)"/>
+
+      <!-- Camada 3: Motor de Recomendação -->
+      <rect x="90" y="260" width="600" height="64" rx="8" fill="var(--note)" stroke="var(--accent)" stroke-width="1.8"/>
+      <text x="390" y="284" font-size="14" font-weight="700" text-anchor="middle" fill="var(--fg)">Motor Híbrido (Popularidade Bayesiana + Time Decay + IBCF)</text>
+      <text x="390" y="306" font-size="11.5" text-anchor="middle" fill="var(--muted)">Recomenda tanto Itens (questão, flashcard, texto) quanto Tópicos / Assuntos / Disciplinas</text>
+    </svg>
+    <figcaption>A árvore <code>Disciplina → Assunto → Tópico</code> funciona como ponte semântica entre todos os módulos do IFVest, permitindo agregar estatísticas por tópico e recomendar conteúdos entre modalidades diferentes.</figcaption>
+  </figure>
+
+  <h3 id="ifvest-dados">Dados Necessários: O que Já Existe vs. Novos Dados a Coletar</h3>
+  <p>Uma primeira versão funcional de ambos os algoritmos pode ser executada <strong>imediatamente com os dados já existentes</strong> no banco relacional, unificando <code>question_history</code> (respostas do IFQuiz e da Pergunta do Dia) e <code>user_mocktest_answers</code> (respostas de simulados, associadas a <code>user_mocktests</code>). Entretanto, para eliminar vieses de seleção e capturar o esforço cognitivo real do estudante, recomenda-se a coleta incremental de cinco novos sinais:</p>
+
+  <div class="table-wrap">
+  <table class="cmp">
+    <thead>
+      <tr><th>Categoria</th><th>Tabela / Campo</th><th>Status</th><th>Papel na Recomendação (Popularidade e IBCF)</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Resolução (Quiz / Simulado)</strong></td>
+        <td><code>question_history.is_correct</code>,<br><code>user_mocktest_answers.is_correct</code></td>
+        <td>Já existe</td>
+        <td>Base para a taxa empírica de erro \(\hat{p}_i\) e para o vetor de desempenho \(r_{u,i}\) no IBCF.</td>
+      </tr>
+      <tr>
+        <td><strong>Carimbo de Tempo</strong></td>
+        <td><code>question_history.answered_at</code>,<br><code>user_mocktests.completed_at</code></td>
+        <td>Já existe</td>
+        <td>Alimenta o decaimento temporal exponencial \(e^{-\lambda(t - t_k)}\) e pondera o histórico recente do aluno.</td>
+      </tr>
+      <tr>
+        <td><strong>Taxonomia Pedagógica</strong></td>
+        <td><code>disciplines</code>, <code>subjects</code>,<br><code>topics</code>, <code>question_topics</code></td>
+        <td>Já existe</td>
+        <td>Agrega estatísticas por tópico/assunto/disciplina e resolve o <em>cold start</em> de novos itens.</td>
+      </tr>
+      <tr>
+        <td><strong>Sinalização de Problemas</strong></td>
+        <td><code>question_reports.status</code></td>
+        <td>Já existe</td>
+        <td>Penaliza ou bloqueia questões com denúncias pendentes (gabarito incorreto ou imagem quebrada).</td>
+      </tr>
+      <tr>
+        <td><strong>Tempo de Resposta</strong></td>
+        <td><code>response_time_ms</code> (INT)</td>
+        <td><strong>Novo dado</strong></td>
+        <td>Diferencia acerto fluido (domínio consolidado), acerto trabalhoso e erro em menos de 5 s (<em>chute rápido</em>).</td>
+      </tr>
+      <tr>
+        <td><strong>Uso de Dica</strong></td>
+        <td><code>used_hint</code> (BOOLEAN)</td>
+        <td><strong>Novo dado</strong></td>
+        <td>Registra se o aluno acionou <code>dica_eliminar</code> no quiz antes de acertar (indica domínio parcial).</td>
+      </tr>
+      <tr>
+        <td><strong>Exposição / Impressão</strong></td>
+        <td><code>item_impressions</code> / <code>was_skipped</code></td>
+        <td><strong>Novo dado</strong></td>
+        <td>Distingue um item “muito procurado/concluído” de um item apenas “muito sorteado pelo sistema”.</td>
+      </tr>
+      <tr>
+        <td><strong>Interações Multi-Módulo</strong></td>
+        <td><code>flashcard_reviews</code>,<br><code>revision_progress</code></td>
+        <td><strong>Novo dado</strong></td>
+        <td>Registra facilidade lembrada no flashcard e leitura de resumo no mesmo <code>topic_id</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 id="ifvest-pop">Proposta 1: Algoritmo de Popularidade no IFVest</h3>
+  <p>Em uma plataforma de estudos para vestibulares, a popularidade não serve apenas para listar os itens mais clicados, mas cumpre três funções essenciais: (1) destacar <strong>Simulados e Tópicos em Alta</strong> na comunidade; (2) identificar as <strong>Questões/Tópicos Campeões de Dúvida</strong>; e (3) <strong>calibrar empiricamente a dificuldade (1 a 5)</strong> das 1.164 questões da Unicamp que hoje possuem valor constante 2.</p>
+
+  <h4>1. Estimador Bayesiano Empírico (Suavização para Poucas Respostas)</h4>
+  <p>Se uma questão recém-cadastrada foi respondida apenas uma vez e o aluno errou, sua taxa bruta de erro seria de 100%, colocando-a artificialmente no topo das questões mais difíceis. Para evitar que itens com poucas interações distorçam o ranking, combinamos a taxa observada no item \(i\) com a média global \(\mu\) da plataforma por meio de uma <strong>média bayesiana ponderada</strong> (a mesma família de estimadores de encolhimento usada no ranking do IMDb):</p>
+
+  <div class="formula">$$S_{\text{bayes}}(i) = \frac{N_i}{N_i + m}\,\hat{p}_i + \frac{m}{N_i + m}\,\mu$$</div>
+
+  <p>\(N_i\) é o total de resoluções do item (ou tópico) \(i\), \(\hat{p}_i = E_i / N_i\) é a fração empírica de erros (ou de engajamento, conforme a lista desejada), \(\mu\) é a taxa média global e \(m\) é o suporte mínimo de confiança (por exemplo, \(m = 10\) resoluções). Quando \(N_i \ll m\), o score fica ancorado perto da média global \(\mu\); conforme \(N_i\) cresce, \(S_{\text{bayes}}(i)\) converge para a probabilidade real \(\hat{p}_i\).</p>
+
+  <div class="board">
+    $$\text{Suponha } \mu = 0{,}40 \text{ (40\% de erro médio global) e } m = 10\text{:}$$
+    $$\begin{aligned}
+    \text{Questão A (1 erro em 1 tentativa, } \hat{p}_A = 1{,}00\text{):}\quad S_{\text{bayes}}(A) &= \frac{1}{11}\cdot 1{,}00 + \frac{10}{11}\cdot 0{,}40 \approx 0{,}455 \\
+    \text{Questão B (32 erros em 40 tentativas, } \hat{p}_B = 0{,}80\text{):}\quad S_{\text{bayes}}(B) &= \frac{40}{50}\cdot 0{,}80 + \frac{10}{50}\cdot 0{,}40 = 0{,}720
+    \end{aligned}$$
+  </div>
+
+  <p>Repare como o estimador impede que a Questão A (com uma única tentativa) ultrapasse a Questão B (consistentemente difícil após 40 tentativas). Além de ordenar recomendações, dividir a distribuição de \(S_{\text{bayes}}(i)\) em 5 quantis permite preencher automaticamente a coluna <code>difficulty</code> de 1 a 5 em <code>multiple_choice_questions</code>.</p>
+
+  <h4>2. Popularidade com Decaimento Temporal e Filtro de Qualidade</h4>
+  <p>Para os cards de <em>“Em Alta na Semana”</em> (questões, tópicos de revisão ou simulados institucionais), aplicamos a fórmula de decaimento exponencial da Seção 1 multiplicada por um fator de integridade \(\phi(i) \in \{0, 1\}\), que zera o score caso o item possua denúncias pendentes em <code>question_reports</code>:</p>
+
+  <div class="formula">$$\mathrm{Pop}_{\text{trend}}(i) = \phi(i)\sum_{k=1}^{N_i} w_k\, e^{-\lambda(t - t_k)}$$</div>
+
+  <h3 id="ifvest-ibcf">Proposta 2: IBCF Multi-Nível (Questões e Tópicos)</h3>
+  <p>No IFVest, o usuário não atribui estrelas de 1 a 5 a uma questão. Em vez disso, cada interação revela o <strong>nível de necessidade pedagógica</strong> (ou lacuna de domínio) do estudante \(u\) no item ou tópico \(i\). Podemos portanto construir a matriz \(R\) em duas granularidades complementares:</p>
+  <ol>
+    <li><strong>Matriz Estudante \(\times\) Questão (\(R^{(Q)} \in \mathbb{R}^{|U| \times |I|}\))</strong>: descobre questões irmãs que avaliam a mesma habilidade fina (se os alunos que erram a questão \(j\) também costumam errar a questão \(i\), ambas compartilham forte similaridade \(s(i,j)\));</li>
+    <li><strong>Matriz Estudante \(\times\) Tópico (\(R^{(T)} \in \mathbb{R}^{|U| \times |T|}\))</strong>: agrega o desempenho do aluno em cada <code>topic_id</code> (combinando questões de quiz, simulados e flashcards). Como o número de tópicos é muito menor que o de questões, essa matriz é muito mais densa e permite recomendar <strong>quais tópicos, assuntos ou disciplinas</strong> o estudante deve priorizar em seus materiais de revisão e flashcards.</li>
+  </ol>
+
+  <h4>Codificação do Sinal Pedagógico \(r_{u,i}\) e Cosseno Ajustado</h4>
+  <p>Para cada par \((u, i)\) observado, codificamos \(r_{u,i} \in [-1, +1]\) de modo que valores positivos representem necessidade de estudo/reforço e valores negativos representem conteúdo já dominado:</p>
+
+  <div class="board">
+    $$r_{u,i} = \begin{cases}
+    +1{,}0 & \text{se errou na tentativa mais recente (lacuna ativa)} \\
+    +0{,}5 & \text{se acertou usando dica (}\mathtt{used\_hint}\text{) ou com tempo muito elevado} \\
+    +0{,}3 & \text{se acertou recentemente, mas possui histórico prévio de erro no item} \\
+    -0{,}5 & \text{se acertou de primeira com fluidez (conceito consolidado)}
+    \end{cases}$$
+  </div>
+
+  <p>Como estudantes em diferentes estágios de preparação possuem médias globais \(\overline{r}_u\) muito distintas (um estudante iniciante tem \(\overline{r}_u\) alto; um estudante avançado tem \(\overline{r}_u\) negativo), aplicamos a <strong>Similaridade de Cosseno Ajustada</strong> de Sarwar et al. <sup class="ref"><a href="#fonte-cf-2">[2]</a></sup> combinada com o amortecimento de significância \(\min(1, |U_{ij}|/\gamma)\) de Herlocker et al. <sup class="ref"><a href="#fonte-cf-1">[1]</a></sup> (por exemplo, \(\gamma = 5\) alunos em comum):</p>
+
+  <div class="formula">$$s_{\text{adj}}(i,j) = \frac{\sum_{u \in U_{ij}} \left(r_{u,i} - \overline{r}_u\right)\left(r_{u,j} - \overline{r}_u\right)}{\sqrt{\sum_{u \in U_{ij}} \left(r_{u,i} - \overline{r}_u\right)^2}\;\sqrt{\sum_{u \in U_{ij}} \left(r_{u,j} - \overline{r}_u\right)^2}} \cdot \min\!\left(1, \frac{|U_{ij}|}{\gamma}\right)$$</div>
+
+  <p>Para contornar o <em>cold start</em> quando uma questão nova ainda tem poucos avaliadores em comum (\(|U_{ij}| &lt; \gamma\)), interpolamos \(s_{\text{adj}}(i,j)\) com a similaridade taxonômica \(s_{\text{tax}}(i,j)\) (que vale \(1{,}0\) se \(i\) e \(j\) compartilham o mesmo <code>topic_id</code>, \(0{,}5\) se compartilham apenas o <code>subject_id</code> e \(0{,}2\) se compartilham apenas a <code>discipline_id</code>).</p>
+
+  <h3 id="ifvest-arquitetura">Arquitetura de Integração (<code>system-designer</code>)</h3>
+  <p>O cenário arquitetural completo foi modelado e validado com o MCP <code>system-designer</code> no arquivo <code>arquitetura_recomendacao_ifvest.json</code>. O diagrama abaixo sintetiza os cinco componentes principais e o fluxo de dados entre o cliente React, a API FastAPI, o worker de recomendação, o cache e o banco PostgreSQL 16:</p>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 780 310" role="img" aria-label="Diagrama de arquitetura do sistema de recomendação no IFVest">
+      <!-- Grupos -->
+      <rect x="15" y="15" width="165" height="280" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-dasharray="5 3"/>
+      <text x="97" y="36" font-size="10.5" font-weight="700" text-anchor="middle" fill="var(--muted)">APRESENTAÇÃO</text>
+
+      <rect x="195" y="15" width="375" height="280" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-dasharray="5 3"/>
+      <text x="382" y="36" font-size="10.5" font-weight="700" text-anchor="middle" fill="var(--muted)">APLICAÇÃO &amp; MOTOR DE RECOMENDAÇÃO</text>
+
+      <rect x="585" y="15" width="180" height="280" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-dasharray="5 3"/>
+      <text x="675" y="36" font-size="10.5" font-weight="700" text-anchor="middle" fill="var(--muted)">PERSISTÊNCIA (PG 16)</text>
+
+      <!-- Cliente -->
+      <rect x="28" y="105" width="140" height="105" rx="7" fill="var(--note)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="98" y="128" font-size="12.5" font-weight="700" text-anchor="middle" fill="var(--fg)">IFVest Frontend</text>
+      <text x="98" y="145" font-size="10" text-anchor="middle" fill="var(--muted)">React 19 / TypeScript</text>
+      <text x="98" y="166" font-size="10" text-anchor="middle" fill="var(--fg)">• /quiz e /simulados</text>
+      <text x="98" y="182" font-size="10" text-anchor="middle" fill="var(--fg)">• Flashcards / Revisão</text>
+      <text x="98" y="198" font-size="9.5" text-anchor="middle" fill="var(--accent)">Envia tempo + dicas</text>
+
+      <!-- API FastAPI -->
+      <rect x="210" y="55" width="175" height="110" rx="7" fill="var(--note)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="297" y="76" font-size="12.5" font-weight="700" text-anchor="middle" fill="var(--fg)">IFVest Backend API</text>
+      <text x="297" y="92" font-size="10" text-anchor="middle" fill="var(--muted)">FastAPI / SQLAlchemy Async</text>
+      <text x="297" y="112" font-size="9.5" text-anchor="middle" fill="var(--fg)">GET /recommendations/popular</text>
+      <text x="297" y="127" font-size="9.5" text-anchor="middle" fill="var(--fg)">GET /recommendations/for-me</text>
+      <text x="297" y="142" font-size="9.5" text-anchor="middle" fill="var(--fg)">GET /quiz/current-question</text>
+      <text x="297" y="156" font-size="9.5" text-anchor="middle" fill="var(--accent)">AdaptiveQuestionChooser</text>
+
+      <!-- Cache -->
+      <rect x="415" y="55" width="140" height="80" rx="7" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
+      <text x="485" y="78" font-size="12" font-weight="700" text-anchor="middle" fill="var(--fg)">Cache Top-K</text>
+      <text x="485" y="95" font-size="10" text-anchor="middle" fill="var(--muted)">In-Memory / Redis</text>
+      <text x="485" y="115" font-size="9.5" text-anchor="middle" fill="var(--fg)">Vizinhos IBCF (&lt; 5 ms)</text>
+
+      <!-- Worker -->
+      <rect x="235" y="195" width="320" height="82" rx="7" fill="var(--card)" stroke="var(--accent)" stroke-width="1.4"/>
+      <text x="395" y="216" font-size="12" font-weight="700" text-anchor="middle" fill="var(--fg)">Worker: Popularidade Bayesiana &amp; IBCF</text>
+      <text x="395" y="234" font-size="10" text-anchor="middle" fill="var(--muted)">1. Calcula S_bayes(i), Pop_trend(i) e calibra difficulty (1–5)</text>
+      <text x="395" y="250" font-size="10" text-anchor="middle" fill="var(--muted)">2. Atualiza matriz esparsa s_adj(i,j) de Questões e Tópicos</text>
+      <text x="395" y="266" font-size="9.5" text-anchor="middle" fill="var(--accent)">Aplica k-anonimato (common_users ≥ 5)</text>
+
+      <!-- Database -->
+      <rect x="598" y="55" width="154" height="222" rx="7" fill="var(--note)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="675" y="76" font-size="12.5" font-weight="700" text-anchor="middle" fill="var(--fg)">PostgreSQL 16</text>
+      <text x="675" y="96" font-size="9.5" text-anchor="middle" fill="var(--fg)">• question_history</text>
+      <text x="675" y="113" font-size="9.5" text-anchor="middle" fill="var(--fg)">• user_mocktest_answers</text>
+      <text x="675" y="130" font-size="9.5" text-anchor="middle" fill="var(--fg)">• disciplines / subjects</text>
+      <text x="675" y="147" font-size="9.5" text-anchor="middle" fill="var(--fg)">• topics / questions</text>
+      <text x="675" y="164" font-size="9.5" text-anchor="middle" fill="var(--fg)">• question_reports</text>
+      <line x1="612" y1="178" x2="738" y2="178" stroke="var(--line)"/>
+      <text x="675" y="196" font-size="9.5" font-weight="700" text-anchor="middle" fill="var(--accent)">Tabelas Materializadas:</text>
+      <text x="675" y="214" font-size="9.5" text-anchor="middle" fill="var(--fg)">• question_popularity_stats</text>
+      <text x="675" y="231" font-size="9.5" text-anchor="middle" fill="var(--fg)">• question_similarities</text>
+      <text x="675" y="248" font-size="9.5" text-anchor="middle" fill="var(--fg)">• topic_similarities</text>
+
+      <!-- Conexões -->
+      <line x1="168" y1="135" x2="208" y2="120" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="385" y1="95" x2="413" y2="95" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="385" y1="145" x2="596" y2="145" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="297" y1="165" x2="297" y2="193" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="3 3" marker-end="url(#arr-muted)"/>
+      <line x1="555" y1="235" x2="596" y2="235" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="485" y1="195" x2="485" y2="137" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)"/>
+    </svg>
+    <figcaption>Fluxo arquitetural modelado no <code>system-designer</code>: o protocolo <code>QuestionChooser</code> já existente em <code>quiz_question_queries.py</code> permite injetar o seletor adaptativo sem acoplamento às rotas HTTP.</figcaption>
+  </figure>
 </section>
 
-<section id="transe">
-  <h2>Translating Embeddings (TransE)</h2>
-  <p class="lead">Mapeamento e distorção translatória em subespaços dimensionais para grafos</p>
+<!-- ============ CRITÉRIOS PEDAGÓGICOS, TÉCNICOS E ÉTICOS ============ -->
+<section id="criterios">
+  <h2>Critérios Pedagógicos, Técnicos e Éticos</h2>
+  <p class="lead">Por que recomendar conteúdos de estudo é fundamentalmente diferente de recomendar filmes ou produtos comerciais — e o que a ciência da aprendizagem e a legislação de proteção de dados exigem.</p>
+
+  <p>Em sistemas comerciais de comércio eletrônico ou <em>streaming</em>, o sucesso de uma recomendação é medido quase exclusivamente pelo clique imediato ou pelo tempo de retenção na tela. Em um <strong>Sistema de Recomendação Educacional (<em>Educational Recommender System</em> — EdRS)</strong>, otimizar cegamente essas métricas pode prejudicar o estudante. Abaixo analisamos as três frentes de critérios que devem governar a implementação no IFVest.</p>
+
+  <!-- ---- 1. FRENTE PEDAGÓGICA ---- -->
+  <h3 id="crit-pedagogicos">1. Frente Pedagógica: Deve-se estudar mais apenas o que se erra?</h3>
+  <p>Uma intuição muito comum ao projetar sistemas de estudo é assumir que <em>“o sistema deve recomendar mais frequentemente aquilo que o aluno mais erra”</em>. A literatura de psicologia cognitiva e neurociência da aprendizagem mostra que essa premissa é <strong>apenas parcialmente verdadeira</strong> e, se aplicada de forma absoluta, produz três efeitos colaterais graves:</p>
+
+  <ol>
+    <li><strong>Sobrecarga Cognitiva e Quebra de Autoeficácia (quando o erro é alto demais)</strong>: Segundo o conceito de <strong>Zona de Desenvolvimento Proximal (ZDP)</strong> de Vygotsky e a teoria de <strong>Dificuldades Desejáveis (<em>Desirable Difficulties</em>)</strong> de Robert Bjork <sup class="ref"><a href="#fonte-ed-2">[2]</a></sup>, o aprendizado só avança quando o desafio está ligeiramente acima do domínio atual, mas ainda ao alcance do estudante. Em 2019, <strong>Wilson et al.</strong> publicaram na <em>Nature Communications</em> a demonstração matemática da <strong>“Regra dos 85%” (<em>The Eighty-Five Percent Rule for Optimal Learning</em>)</strong> <sup class="ref"><a href="#fonte-ed-1">[1]</a></sup>: a taxa de aprendizado humano é maximizada quando o estudante acerta cerca de <strong>84,1%</strong> das tentativas e erra cerca de <strong>15,87%</strong>. Quando a taxa de erro em um tópico passa de 50%, o erro deixa de fornecer sinal informativo e vira ruído cognitivo. No IFVest, onde cada sessão do IFQuiz possui exatamente <strong>3 vidas (<code>QUIZ_MAX_LIVES = 3</code>)</strong>, bombardear o aluno apenas com questões onde sua probabilidade de erro é máxima fará com que ele perca as 3 vidas nas primeiras questões, gerando frustração e abandono;</li>
+    <li><strong>A Curva do Esquecimento (quando o que já se acerta é abandonado)</strong>: Se o algoritmo recomendar exclusivamente os tópicos em que o aluno erra e parar de exibir os tópicos que ele já domina, a memória de longo prazo decai exponencialmente (Curva do Esquecimento de Ebbinghaus). Os estudos clássicos de <strong>Roediger &amp; Karpicke (2006)</strong> sobre <strong>Prática de Recuperação Espaçada (<em>Spaced Retrieval Practice</em>)</strong> <sup class="ref"><a href="#fonte-ed-3">[3]</a></sup> demonstram que tópicos já dominados precisam continuar sendo recomendados em intervalos crescentes (por exemplo, a cada 7, 21 e 60 dias) para garantir retenção até a data do vestibular;</li>
+    <li><strong>Ilusão de Competência na Prática em Bloco vs. Prática Intercalada (<em>Interleaving</em>)</strong>: Insistir repetidamente em dez questões seguidas do mesmo subtópico que o aluno acabou de errar (<em>blocked practice</em>) leva o aluno a decorar o padrão superficial da fórmula na memória de trabalho. Pesquisas de Rohrer &amp; Taylor mostram que <strong>intercalar (<em>interleaving</em>)</strong> tópicos distintos dentro da mesma bateria melhora substancialmente a capacidade de discriminar qual estratégia usar no dia da prova.</li>
+  </ol>
+
+  <div class="note"><strong>Conclusão Pedagógica Central para o IFVest:</strong> Como questões, flashcards e materiais de revisão compartilham o mesmo identificador <code>Disciplina → Assunto → Tópico</code>, a taxa de erro do estudante em um tópico <strong>não deve apenas aumentar a frequência daquele tópico, mas sim determinar QUAL MODALIDADE de estudo será recomendada</strong> naquele tópico.</div>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 780 330" role="img" aria-label="Curva da Regra dos 85% de Wilson et al. e roteamento pedagógico entre Material de Revisão, Flashcards e Questões por faixa de domínio no tópico">
+      <!-- Fundo das 3 zonas -->
+      <rect x="65" y="30" width="215" height="205" fill="rgba(239,68,68,0.08)" stroke="var(--line)"/>
+      <rect x="280" y="30" width="250" height="205" fill="rgba(34,197,94,0.10)" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 2"/>
+      <rect x="530" y="30" width="210" height="205" fill="rgba(59,130,246,0.08)" stroke="var(--line)"/>
+
+      <!-- Títulos das Zonas -->
+      <text x="172" y="50" font-size="11" font-weight="700" text-anchor="middle" fill="#dc2626">1. ZONA DE FRUSTRAÇÃO / LACUNA</text>
+      <text x="172" y="65" font-size="10" text-anchor="middle" fill="var(--muted)">Acerto no Tópico &lt; 50% (Erro Alto)</text>
+
+      <text x="405" y="50" font-size="11" font-weight="700" text-anchor="middle" fill="var(--accent)">2. ZONA ÓTIMA (ZDP / REGRA DOS 85%)</text>
+      <text x="405" y="65" font-size="10" text-anchor="middle" fill="var(--muted)">Acerto entre 55% e 85% (Pico em ~84%)</text>
+
+      <text x="635" y="50" font-size="11" font-weight="700" text-anchor="middle" fill="var(--fg)">3. ZONA DE DOMÍNIO / RETENÇÃO</text>
+      <text x="635" y="65" font-size="10" text-anchor="middle" fill="var(--muted)">Acerto &gt; 85% (Risco de Esquecimento)</text>
+
+      <!-- Eixos -->
+      <line x1="65" y1="235" x2="740" y2="235" stroke="var(--fg)" stroke-width="1.5"/>
+      <line x1="65" y1="30" x2="65" y2="235" stroke="var(--fg)" stroke-width="1.5"/>
+      <text x="22" y="135" font-size="11" font-weight="600" text-anchor="middle" fill="var(--muted)" transform="rotate(-90 22 135)">Taxa de Aprendizado (Ganho)</text>
+      <text x="402" y="256" font-size="11" font-weight="600" text-anchor="middle" fill="var(--muted)">Taxa de Acerto Empírica do Estudante no Tópico (0% → 100%)</text>
+
+      <!-- Marcas do eixo X -->
+      <text x="75" y="250" font-size="10" fill="var(--muted)">0%</text>
+      <text x="280" y="250" font-size="10" text-anchor="middle" fill="var(--muted)">50%</text>
+      <text x="455" y="250" font-size="10" font-weight="700" text-anchor="middle" fill="var(--accent)">85%</text>
+      <text x="730" y="250" font-size="10" text-anchor="middle" fill="var(--muted)">100%</text>
+
+      <!-- Curva de Aprendizado (U invertido assimétrico com pico em x=455) -->
+      <path d="M 75 225 C 160 220, 230 185, 280 145 C 335 100, 400 78, 455 78 C 510 78, 560 125, 620 175 C 665 205, 705 222, 735 228" fill="none" stroke="var(--accent)" stroke-width="3"/>
+      <circle cx="455" cy="78" r="5" fill="var(--accent)"/>
+      <line x1="455" y1="83" x2="455" y2="235" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="3 3"/>
+      <text x="455" y="96" font-size="10" font-weight="700" text-anchor="middle" fill="var(--accent)">Sweet Spot (Wilson et al., 2019)</text>
+
+      <!-- Caixas de Ação Recomendada por Zona -->
+      <rect x="75" y="268" width="195" height="52" rx="6" fill="var(--bg)" stroke="var(--line)" stroke-width="1.4"/>
+      <text x="172" y="286" font-size="10.5" font-weight="700" text-anchor="middle" fill="var(--fg)">Ação Recomendada no Tópico:</text>
+      <text x="172" y="301" font-size="10" text-anchor="middle" fill="var(--muted)">Material de Revisão Teórica +</text>
+      <text x="172" y="314" font-size="10" text-anchor="middle" fill="var(--accent)">Flashcards de Base + Questões Fáceis</text>
+
+      <rect x="290" y="268" width="230" height="52" rx="6" fill="var(--note)" stroke="var(--accent)" stroke-width="1.6"/>
+      <text x="405" y="286" font-size="10.5" font-weight="700" text-anchor="middle" fill="var(--fg)">Ação Recomendada no Tópico:</text>
+      <text x="405" y="301" font-size="10" text-anchor="middle" fill="var(--fg)">Questões Adaptativas (IBCF) no Quiz</text>
+      <text x="405" y="314" font-size="10" text-anchor="middle" fill="var(--accent)">e Simulados (preserva as 3 vidas)</text>
+
+      <rect x="540" y="268" width="195" height="52" rx="6" fill="var(--bg)" stroke="var(--line)" stroke-width="1.4"/>
+      <text x="637" y="286" font-size="10.5" font-weight="700" text-anchor="middle" fill="var(--fg)">Ação Recomendada no Tópico:</text>
+      <text x="637" y="301" font-size="10" text-anchor="middle" fill="var(--muted)">Repetição Espaçada (7 → 21 → 60d)</text>
+      <text x="637" y="314" font-size="10" text-anchor="middle" fill="var(--accent)">Flashcards Rápidos de Manutenção</text>
+    </svg>
+    <figcaption>Roteamento pedagógico multi-módulo guiado pela Regra dos 85% (Wilson et al., 2019) e pela Prática Espaçada: errar muito em um tópico pede revisão conceitual e flashcards antes de novas baterias de questões difíceis; acertar muito pede manutenção espaçada, e não abandono do tópico.</figcaption>
+  </figure>
+
+  <h4>Composição Balanceada de Baterias (Regra 20 / 60 / 20)</h4>
+  <p>Para respeitar simultaneamente a ZDP, a regra das 3 vidas do IFQuiz e a retenção espaçada, uma bateria recomendada de \(N\) itens deve ser montada por cotas pedagógicas:</p>
+  <ul>
+    <li><strong>20% de Aquecimento e Retenção Espaçada</strong>: tópicos já dominados pelo estudante há mais de \(k\) dias (combate a curva do esquecimento e constrói confiança inicial no quiz);</li>
+    <li><strong>60% na Zona de Desenvolvimento Proximal (IBCF Moderado)</strong>: questões ou tópicos onde o estudante possui domínio parcial (probabilidade estimada de acerto entre 70% e 85%), maximizando a velocidade de aprendizagem;</li>
+    <li><strong>20% de Desafio Focal (Lacunas Críticas)</strong>: questões similares às que o aluno errou recentemente, precedidas pela sugestão do <strong>Material de Revisão</strong> e dos <strong>Flashcards</strong> correspondentes àquele <code>topic_id</code>.</li>
+  </ul>
+
+  <!-- ---- 2. FRENTE TÉCNICA ---- -->
+  <h3 id="crit-tecnicos">2. Frente Técnica: Vieses Estatísticos, <em>Concept Drift</em> e Avaliação</h3>
+  <p>Na engenharia do sistema de recomendação, quatro armadilhas técnicas precisam ser tratadas para que o algoritmo não degrade com o tempo:</p>
+
+  <h4>1. Viés de Exposição (<em>Exposure Bias</em>) e Efeito Mateus</h4>
+  <p>Como o próprio backend escolhe quais questões aparecem nos quizzes e simulados aleatórios, uma questão recomendada por popularidade acumulará ainda mais resoluções simplesmente porque foi exibida mais vezes, criando um ciclo auto-reforçado (<em>Rich-Get-Richer</em>). Para quebrar esse ciclo, a popularidade deve ser normalizada pela taxa de exposição (ou conclusão voluntária) e o seletor de questões deve incorporar <strong>exploração estocástica</strong> (por exemplo, amostragem via <em>Softmax</em> sobre os scores ou reserva de \(\epsilon = 15\%\) das vagas para itens pouco explorados do mesmo tópico).</p>
+
+  <h4>2. Evolução Temporal do Conhecimento (<em>Concept Drift</em> do Usuário)</h4>
+  <p>Em recomendações de filmes, uma nota dada há seis meses continua refletindo o gosto do usuário. Na educação, <strong>o estudante muda de estado cognitivo à medida que estuda</strong>: três erros em <em>Logaritmos</em> cometidos em março deixam de representar uma vulnerabilidade se, em outubro, o estudante revisou o conteúdo e acertou dez questões seguidas. Por isso, na fórmula de predição do IBCF, o histórico do próprio aluno \(r_{u,j}\) também precisa sofrer <strong>decaimento temporal exponencial</strong> \(e^{-\beta(t - t_{u,j})}\), dando peso predominante às interações recentes.</p>
+
+  <h4>3. Diversidade Intra-Lista e Prevenção de Redundância</h4>
+  <p>Se um aluno errou uma questão de <em>Estequiometria</em>, os dez vizinhos mais próximos \(N_K(i)\) na matriz do IBCF podem ser todos do mesmo subtópico. Recomendar os dez num único simulado violaria o princípio pedagógico de intercalação (<em>interleaving</em>). A geração da lista final deve aplicar uma restrição de cobertura máxima por <code>topic_id</code> (por exemplo, no máximo 2 questões do mesmo tópico por sessão de quiz).</p>
+
+  <h4>4. Protocolo de Avaliação (Sem <em>Data Leakage</em> Temporal)</h4>
+  <p>Avaliar o recomendador com divisão aleatória de treino e teste (<em>random split</em>) vaza informações do futuro para o passado (usa o desempenho do aluno depois de estudar um tópico para “prever” seu desempenho antes de estudá-lo). O protocolo correto exige <strong>divisão temporal estrita (<em>Time-Based Split</em>)</strong> e acompanhamento conjunto de métricas de acurácia de ranking (<em>NDCG@K</em>, <em>Recall@K</em>), métricas estruturais (<em>Catalog Coverage</em> e <em>Intra-List Diversity</em>) e métricas pedagógicas (<em>Ganho de Aprendizagem Normalizado</em> e redução de encerramentos precoces por perda das 3 vidas).</p>
+
+  <!-- ---- 3. FRENTE ÉTICA E LEGAL ---- -->
+  <h3 id="crit-eticos">3. Frente Ética e Legal: Proteção de Dados (LGPD), Transparência e Equidade</h3>
+  <p>Como o IFVest atende estudantes em preparação para o ensino superior — incluindo ampla parcela de <strong>adolescentes menores de 18 anos</strong> no ensino médio —, o desenho do algoritmo precisa observar rigorosamente a <strong>Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018)</strong> <sup class="ref"><a href="#fonte-ed-6">[6]</a></sup> e os princípios de Inteligência Artificial Responsável na Educação:</p>
+
+  <ol>
+    <li><strong>Melhor Interesse do Adolescente (Art. 14 da LGPD) e Não-Estigmatização</strong>: Os scores de vulnerabilidade pedagógica \(r_{u,i}\) existem exclusivamente para apoiar o estudo individual do próprio aluno. Eles jamais devem ser expostos publicamente no ranking da plataforma nem utilizados para rotular negativamente ou segregar estudantes;</li>
+    <li><strong>Minimização de Dados e Finalidade (Art. 6º, I a III da LGPD)</strong>: Coletar apenas telemetria estritamente necessária ao cálculo pedagógico (acerto/erro, uso de dica e tempo de resolução truncado a um teto máximo, como 10 minutos, para não registrar períodos em que o estudante deixou a aba aberta ausente), sem rastreamento invasivo de dispositivo ou comportamento fora das atividades;</li>
+    <li><strong>Privacidade Estrutural via \(k\)-Anonimato no IBCF</strong>: Uma vantagem ética decisiva do <strong>IBCF</strong> sobre o UBCF é que o sistema não armazena uma matriz de similaridade entre pessoas \(\mathrm{sim}(u,v)\), mas apenas entre conteúdos educacionais \(\mathrm{sim}(i,j)\). Ainda assim, se apenas 1 ou 2 alunos tiverem respondido um par de questões raras, a similaridade entre elas revelaria o padrão individual daqueles alunos. Exigir um suporte mínimo \(\gamma \ge 5\) co-avaliadores antes de persistir \(s(i,j)\) atua simultaneamente como estabilizador estatístico e garantia de <strong>\(k\)-anonimato</strong>;</li>
+    <li><strong>Explicabilidade (<em>Open Learner Models</em>) e Direito à Revisão (Art. 20 da LGPD)</strong>: Recomendações em educação não podem operar como caixas-pretas <sup class="ref"><a href="#fonte-ed-5">[5]</a></sup>. O estudante deve ver uma justificativa clara (ex.: <em>“Tópico recomendado porque sua taxa de acerto recente em Eletrodinâmica foi de 40%”</em>) e manter total <strong>autonomia</strong> para desativar o modo adaptativo ou escolher livremente qualquer disciplina, assunto ou tópico;</li>
+    <li><strong>Prevenção de Bolhas de Filtro Curriculares (<em>Curriculum Filter Bubbles</em>)</strong>: Se um estudante tem mais afinidade com Biologia do que com Física, ou se o algoritmo focar apenas em duas disciplinas onde ele mais interage, o sistema pode induzir uma cobertura desequilibrada do edital do vestibular. Nos simulados gerais, a recomendação deve respeitar a distribuição oficial de disciplinas da prova-alvo, aplicando o IBCF apenas para selecionar as melhores questões <em>dentro</em> da cota de cada disciplina.</li>
+  </ol>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 780 230" role="img" aria-label="Síntese das três frentes de critérios: Pedagógica, Técnica e Ética/LGPD">
+      <rect x="20" y="20" width="235" height="190" rx="8" fill="var(--bg)" stroke="var(--accent)" stroke-width="1.5"/>
+      <rect x="20" y="20" width="235" height="34" rx="8" fill="var(--note)"/>
+      <text x="137" y="42" font-size="12.5" font-weight="700" text-anchor="middle" fill="var(--accent)">1. FRENTE PEDAGÓGICA</text>
+      <text x="34" y="74" font-size="11" fill="var(--fg)">• Regra dos 85% / ZDP (Wilson, 2019)</text>
+      <text x="34" y="96" font-size="11" fill="var(--fg)">• Proteção das 3 vidas do IFQuiz</text>
+      <text x="34" y="118" font-size="11" fill="var(--fg)">• Roteamento Revisão → Flashcard → Quiz</text>
+      <text x="34" y="140" font-size="11" fill="var(--fg)">• Repetição Espaçada (combate esquecimento)</text>
+      <text x="34" y="162" font-size="11" fill="var(--fg)">• Prática Intercalada (Interleaving)</text>
+      <text x="34" y="184" font-size="11" fill="var(--fg)">• Explicabilidade Metacognitiva (OLM)</text>
+
+      <rect x="272" y="20" width="235" height="190" rx="8" fill="var(--bg)" stroke="var(--accent)" stroke-width="1.5"/>
+      <rect x="272" y="20" width="235" height="34" rx="8" fill="var(--note)"/>
+      <text x="390" y="42" font-size="12.5" font-weight="700" text-anchor="middle" fill="var(--accent)">2. FRENTE TÉCNICA</text>
+      <text x="286" y="74" font-size="11" fill="var(--fg)">• Suavização Bayesiana (Cold Start)</text>
+      <text x="286" y="96" font-size="11" fill="var(--fg)">• Cosseno Ajustado + Significance Weighting</text>
+      <text x="286" y="118" font-size="11" fill="var(--fg)">• Decaimento no vetor do aluno (Drift)</text>
+      <text x="286" y="140" font-size="11" fill="var(--fg)">• Controle de Exposure Bias (Softmax)</text>
+      <text x="286" y="162" font-size="11" fill="var(--fg)">• Hibridização pela árvore de Tópicos</text>
+      <text x="286" y="184" font-size="11" fill="var(--fg)">• Validação com Time-Based Split</text>
+
+      <rect x="525" y="20" width="235" height="190" rx="8" fill="var(--bg)" stroke="var(--accent)" stroke-width="1.5"/>
+      <rect x="525" y="20" width="235" height="34" rx="8" fill="var(--note)"/>
+      <text x="642" y="42" font-size="12.5" font-weight="700" text-anchor="middle" fill="var(--accent)">3. FRENTE ÉTICA &amp; LGPD</text>
+      <text x="539" y="74" font-size="11" fill="var(--fg)">• Melhor interesse do adolescente (Art. 14)</text>
+      <text x="539" y="96" font-size="11" fill="var(--fg)">• Minimização de telemetria (Art. 6º, III)</text>
+      <text x="539" y="118" font-size="11" fill="var(--fg)">• k-Anonimato na matriz IBCF (γ ≥ 5)</text>
+      <text x="539" y="140" font-size="11" fill="var(--fg)">• Transparência e autonomia (Art. 20)</text>
+      <text x="539" y="162" font-size="11" fill="var(--fg)">• Equilíbrio curricular entre disciplinas</text>
+      <text x="539" y="184" font-size="11" fill="var(--fg)">• Bloqueio de questões denunciadas</text>
+    </svg>
+    <figcaption>Tríade de governança para a implementação dos algoritmos de recomendação no IFVest.</figcaption>
+  </figure>
+
+  <aside class="sources" id="fontes-ifvest">
+    <h4>Fontes</h4>
+    <ol>
+      <li id="fonte-ed-1">Wilson, R. C.; Shenhav, A.; Straccia, M. A.; Cohen, J. D. <em>The Eighty Five Percent Rule for optimal learning</em>. Nature Communications, 10(1), 4646, 2019. DOI: <a href="https://doi.org/10.1038/s41467-019-12552-4">10.1038/s41467-019-12552-4</a>.</li>
+      <li id="fonte-ed-2">Bjork, E. L.; Bjork, R. A. <em>Making things hard on yourself, but in a good way: Creating desirable difficulties to enhance learning</em>. Psychology and the Real World, 2, p. 56–64, 2011.</li>
+      <li id="fonte-ed-3">Roediger, H. L.; Karpicke, J. D. <em>Test-enhanced learning: Taking memory tests improves long-term retention</em>. Psychological Science, 17(3), p. 249–255, 2006. DOI: <a href="https://doi.org/10.1111/j.1467-9280.2006.01693.x">10.1111/j.1467-9280.2006.01693.x</a>.</li>
+      <li id="fonte-ed-4">Manouselis, N.; Drachsler, H.; Verbert, K.; Duval, E. <em>Recommender Systems for Learning</em>. SpringerBriefs in Electrical and Computer Engineering, 2012.</li>
+      <li id="fonte-ed-5">Bull, S.; Kay, J. <em>Open Learner Models</em>. In: Nkambou, R.; Bourdeau, J.; Mizoguchi, R. (eds.) <em>Advances in Intelligent Tutoring Systems</em>, Springer, p. 301–322, 2010.</li>
+      <li id="fonte-ed-6">Brasil. <em>Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de Dados Pessoais — LGPD)</em>. Artigos 6º (princípios da finalidade, necessidade e transparência), 14 (tratamento de dados pessoais de crianças e adolescentes) e 20 (direito à revisão e explicação de decisões automatizadas).</li>
+    </ol>
+  </aside>
 </section>
 
 </main>
